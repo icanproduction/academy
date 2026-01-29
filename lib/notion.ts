@@ -1010,7 +1010,13 @@ export async function createContentReview(
 
 // ========= REVIEW QUEUE (ADMIN) =========
 
-export async function getReviewQueue(): Promise<Content[]> {
+interface ReviewQueueItem extends Content {
+  clientName?: string;
+  pillarName?: string;
+  pillarEmoji?: string;
+}
+
+export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
   try {
     const res = await notion.databases.query({
       database_id: DB.contents,
@@ -1023,7 +1029,8 @@ export async function getReviewQueue(): Promise<Content[]> {
       sorts: [{ property: "Submitted At", direction: "ascending" }],
     });
 
-    return res.results.map((page: any) => ({
+    // Map basic content data
+    const contents = res.results.map((page: any) => ({
       id: page.id,
       uniqueId: getText(page.properties["Unique ID"]),
       clientId: (getText(page.properties["Client"]) as any)?.[0] || "",
@@ -1048,6 +1055,43 @@ export async function getReviewQueue(): Promise<Content[]> {
       submittedAt: getText(page.properties["Submitted At"]),
       approvedAt: getText(page.properties["Approved At"]),
       postedAt: getText(page.properties["Posted At"]),
+    }));
+
+    // Get unique client and pillar IDs
+    const clientIds = [...new Set(contents.map(c => c.clientId).filter(Boolean))];
+    const pillarIds = [...new Set(contents.map(c => c.pillarId).filter(Boolean))];
+
+    // Fetch client names
+    const clientMap: Record<string, string> = {};
+    for (const clientId of clientIds) {
+      try {
+        const clientPage = await notion.pages.retrieve({ page_id: clientId }) as any;
+        clientMap[clientId] = getText(clientPage.properties["Name"]) || "Unknown";
+      } catch {
+        clientMap[clientId] = "Unknown";
+      }
+    }
+
+    // Fetch pillar info
+    const pillarMap: Record<string, { name: string; emoji: string }> = {};
+    for (const pillarId of pillarIds) {
+      try {
+        const pillarPage = await notion.pages.retrieve({ page_id: pillarId }) as any;
+        pillarMap[pillarId] = {
+          name: getText(pillarPage.properties["Name"]) || "",
+          emoji: getText(pillarPage.properties["Emoji"]) || "",
+        };
+      } catch {
+        pillarMap[pillarId] = { name: "", emoji: "" };
+      }
+    }
+
+    // Enrich contents with client and pillar info
+    return contents.map(content => ({
+      ...content,
+      clientName: clientMap[content.clientId] || "Unknown",
+      pillarName: pillarMap[content.pillarId]?.name || "",
+      pillarEmoji: pillarMap[content.pillarId]?.emoji || "",
     }));
   } catch (error) {
     console.error("Error fetching review queue:", error);

@@ -31,6 +31,12 @@ import {
   RefreshCw,
   LayoutGrid,
   FileText,
+  Film,
+  Images,
+  Smartphone,
+  Eye,
+  ClipboardCheck,
+  Instagram,
 } from "lucide-react";
 
 // Types
@@ -107,7 +113,21 @@ interface ReelsBrief {
   createdAt: string;
 }
 
-type TabId = "overview" | "products" | "pillars" | "assets" | "briefs";
+interface ClientContent {
+  id: string;
+  uniqueId: string;
+  title: string;
+  contentType: string;
+  platforms: string[];
+  status: string;
+  publishDate: string;
+  pillarId: string;
+  pillarName?: string;
+  pillarEmoji?: string;
+  createdAt: string;
+}
+
+type TabId = "overview" | "products" | "pillars" | "assets" | "briefs" | "contents";
 
 const phaseColor: Record<string, string> = {
   Systematize: "from-blue-500 to-indigo-600",
@@ -138,6 +158,7 @@ export default function AdminClientDetailPage() {
   const [assets, setAssets] = useState<ClientAsset[]>([]);
   const [pillars, setPillars] = useState<ContentPillar[]>([]);
   const [briefs, setBriefs] = useState<ReelsBrief[]>([]);
+  const [contents, setContents] = useState<ClientContent[]>([]);
 
   // Context status
   const [contextStatus, setContextStatus] = useState<{ cached: boolean; lastUpdated?: string }>({ cached: false });
@@ -232,6 +253,36 @@ export default function AdminClientDetailPage() {
               setBriefs(Array.isArray(data) ? data : []);
             }
             break;
+
+          case "contents":
+            const [contentsRes, pillarsForContents] = await Promise.all([
+              fetch(`/api/contents?clientId=${clientId}`),
+              fetch(`/api/pillars?clientId=${clientId}`),
+            ]);
+            if (contentsRes.ok) {
+              const data = await contentsRes.json();
+              const contentsData = Array.isArray(data) ? data : (data.contents || []);
+
+              // Get pillars to map names
+              let pillarsMap: Record<string, { name: string; emoji: string }> = {};
+              if (pillarsForContents.ok) {
+                const pillarsData = await pillarsForContents.json();
+                const pillarsArray = Array.isArray(pillarsData) ? pillarsData : [];
+                pillarsArray.forEach((p: any) => {
+                  pillarsMap[p.id] = { name: p.name, emoji: p.emoji };
+                });
+              }
+
+              // Enrich contents with pillar names
+              const enrichedContents = contentsData.map((c: any) => ({
+                ...c,
+                pillarName: pillarsMap[c.pillarId]?.name || "",
+                pillarEmoji: pillarsMap[c.pillarId]?.emoji || "",
+              }));
+
+              setContents(enrichedContents);
+            }
+            break;
         }
       } catch (error) {
         console.error("Error fetching tab data:", error);
@@ -318,6 +369,7 @@ export default function AdminClientDetailPage() {
 
   const tabs = [
     { id: "overview" as const, label: "Overview", icon: LayoutGrid },
+    { id: "contents" as const, label: "Konten", icon: FileVideo },
     { id: "products" as const, label: "Products", icon: Package },
     { id: "pillars" as const, label: "Pillars", icon: Target },
     { id: "assets" as const, label: "Assets", icon: FolderOpen },
@@ -885,6 +937,148 @@ export default function AdminClientDetailPage() {
                   <Sparkles className="w-4 h-4" />
                   Generate Brief
                 </Link>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CONTENTS TAB */}
+        {activeTab === "contents" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold">Konten Client ({contents.length})</h2>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-4 gap-4">
+              <div className="glass-card rounded-xl p-4">
+                <p className="text-sm text-slate-500">Total Konten</p>
+                <p className="text-2xl font-bold text-slate-800">{contents.length}</p>
+              </div>
+              <div className="glass-card rounded-xl p-4 border-l-4 border-amber-500">
+                <p className="text-sm text-slate-500">Menunggu Review</p>
+                <p className="text-2xl font-bold text-amber-600">
+                  {contents.filter(c => c.status === "idea_submitted" || c.status === "production_submitted").length}
+                </p>
+              </div>
+              <div className="glass-card rounded-xl p-4 border-l-4 border-blue-500">
+                <p className="text-sm text-slate-500">In Progress</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {contents.filter(c => c.status === "in_progress" || c.status === "approved").length}
+                </p>
+              </div>
+              <div className="glass-card rounded-xl p-4 border-l-4 border-green-500">
+                <p className="text-sm text-slate-500">Published</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {contents.filter(c => c.status === "posted").length}
+                </p>
+              </div>
+            </div>
+
+            {contents.length > 0 ? (
+              <div className="space-y-3">
+                {contents.map((content) => {
+                  const typeConfig: Record<string, { icon: any; color: string }> = {
+                    reels: { icon: Film, color: "from-pink-500 to-rose-500" },
+                    carousel: { icon: Images, color: "from-blue-500 to-indigo-500" },
+                    story: { icon: Smartphone, color: "from-purple-500 to-violet-500" },
+                  };
+                  const config = typeConfig[content.contentType] || { icon: FileVideo, color: "from-slate-500 to-slate-600" };
+                  const TypeIcon = config.icon;
+
+                  const statusColors: Record<string, string> = {
+                    draft: "bg-slate-100 text-slate-600",
+                    idea_submitted: "bg-amber-100 text-amber-700",
+                    revision_idea: "bg-red-100 text-red-700",
+                    approved: "bg-blue-100 text-blue-700",
+                    in_progress: "bg-indigo-100 text-indigo-700",
+                    production_submitted: "bg-purple-100 text-purple-700",
+                    revision_production: "bg-red-100 text-red-700",
+                    ready_to_post: "bg-emerald-100 text-emerald-700",
+                    posted: "bg-green-100 text-green-700",
+                  };
+
+                  const statusLabels: Record<string, string> = {
+                    draft: "Draft",
+                    idea_submitted: "Menunggu Review Ide",
+                    revision_idea: "Revisi Ide",
+                    approved: "Ide Approved",
+                    in_progress: "In Production",
+                    production_submitted: "Menunggu Review Produksi",
+                    revision_production: "Revisi Produksi",
+                    ready_to_post: "Ready to Post",
+                    posted: "Published",
+                  };
+
+                  const needsReview = content.status === "idea_submitted" || content.status === "production_submitted";
+
+                  return (
+                    <Link
+                      key={content.id}
+                      href={needsReview ? `/dashboard/admin/review` : `/dashboard/contents/${content.id}`}
+                      className="glass-card rounded-xl p-4 flex items-center justify-between hover:shadow-md hover:border-accent/30 transition-all block"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={cn(
+                          "w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center",
+                          config.color
+                        )}>
+                          <TypeIcon className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs text-slate-400 font-mono">{content.uniqueId}</span>
+                            <span className={cn(
+                              "px-2 py-0.5 rounded text-xs font-medium",
+                              statusColors[content.status] || "bg-slate-100 text-slate-600"
+                            )}>
+                              {statusLabels[content.status] || content.status}
+                            </span>
+                          </div>
+                          <p className="font-semibold text-slate-800">{content.title}</p>
+                          <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
+                            <span>{content.pillarEmoji} {content.pillarName}</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {content.publishDate ? new Date(content.publishDate).toLocaleDateString("id-ID") : "-"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {/* Platform badges */}
+                        <div className="flex items-center gap-1">
+                          {content.platforms?.includes("instagram") && (
+                            <span className="w-6 h-6 rounded bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                              <Instagram className="w-3.5 h-3.5 text-white" />
+                            </span>
+                          )}
+                          {content.platforms?.includes("tiktok") && (
+                            <span className="w-6 h-6 rounded bg-black flex items-center justify-center">
+                              <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                              </svg>
+                            </span>
+                          )}
+                        </div>
+                        {needsReview && (
+                          <span className="flex items-center gap-1 px-3 py-1.5 text-sm text-amber-700 bg-amber-50 rounded-lg font-medium">
+                            <ClipboardCheck className="w-4 h-4" />
+                            Review
+                          </span>
+                        )}
+                        <Eye className="w-5 h-5 text-slate-400" />
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="glass-card rounded-2xl p-12 text-center">
+                <FileVideo className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <h3 className="font-semibold mb-2">Belum ada konten</h3>
+                <p className="text-sm text-slate-500 mb-4">Client belum membuat konten apapun</p>
               </div>
             )}
           </div>
