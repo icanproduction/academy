@@ -5,6 +5,8 @@ import {
   updateContentAIChat,
   getClientById,
   notion,
+  saveContentChatMessage,
+  getContentChatHistory,
 } from "@/lib/notion";
 import { getOrCompileContext } from "@/lib/context-compiler";
 
@@ -172,16 +174,28 @@ OUTPUT MARKERS (untuk parsing):
     if (structureMatch) updates.generatedStructure = structureMatch[1].trim();
     if (captionMatch) updates.generatedCaption = captionMatch[1].trim();
 
-    // Save chat history (last 10 exchanges)
-    const newHistory = [...(conversationHistory || []),
+    // Calculate sequence number for new messages
+    const existingHistory = conversationHistory || [];
+    const nextSeq = existingHistory.length + 1;
+
+    // Save messages to Notion Chat History DB (async, don't block response)
+    const savePromises = [
+      saveContentChatMessage(contentId, content.clientId, "user", message, nextSeq),
+      saveContentChatMessage(contentId, content.clientId, "assistant", assistantMessage, nextSeq + 1),
+    ];
+
+    // Also save to content fields for quick access (limited to 2000 chars for summary)
+    const newHistory = [...existingHistory,
       { role: "user", content: message },
       { role: "assistant", content: assistantMessage }
     ].slice(-20);
     updates.chatHistory = JSON.stringify(newHistory);
 
-    if (Object.keys(updates).length > 0) {
-      await updateContentAIChat(contentId, updates);
-    }
+    // Execute saves in parallel
+    await Promise.all([
+      ...savePromises,
+      Object.keys(updates).length > 0 ? updateContentAIChat(contentId, updates) : Promise.resolve(),
+    ]);
 
     return NextResponse.json({
       success: true,
@@ -208,6 +222,8 @@ export async function GET(
 ) {
   try {
     const { id: contentId } = await params;
+    const { searchParams } = new URL(request.url);
+    const fullHistory = searchParams.get("full") === "true";
 
     const content = await getContentWithAI(contentId);
     if (!content) {
@@ -217,14 +233,25 @@ export async function GET(
       );
     }
 
-    // Parse chat history
-    let chatHistory = [];
-    try {
-      if (content.chatHistory) {
+    // Get chat history - prefer from database if full history requested
+    let chatHistory: { role: string; content: string }[] = [];
+
+    if (fullHistory) {
+      // Fetch from database for complete history
+      const dbHistory = await getContentChatHistory(contentId);
+      chatHistory = dbHistory.map((msg) => ({
+        role: msg.role,
+        content: msg.message,
+      }));
+    }
+
+    // Fallback to JSON field if DB history is empty
+    if (chatHistory.length === 0 && content.chatHistory) {
+      try {
         chatHistory = JSON.parse(content.chatHistory);
+      } catch {
+        chatHistory = [];
       }
-    } catch {
-      chatHistory = [];
     }
 
     return NextResponse.json({

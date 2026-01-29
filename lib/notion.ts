@@ -33,6 +33,8 @@ const DB = {
   reelsBriefs: getDbId(process.env.NOTION_REELS_BRIEFS_DB_ID),
   briefConversations: getDbId(process.env.NOTION_BRIEF_CONVERSATIONS_DB_ID),
   targetAudience: getDbId(process.env.NOTION_TARGET_AUDIENCE_DB_ID),
+  // Content Chat History
+  contentChatHistory: getDbId(process.env.NOTION_CONTENT_CHAT_HISTORY_DB_ID),
 };
 
 // Helper to extract text from Notion property
@@ -1955,6 +1957,129 @@ export async function getContentWithAI(contentId: string): Promise<(Content & {
   } catch (error) {
     console.error("Error fetching content with AI:", error);
     return null;
+  }
+}
+
+// ========= CONTENT CHAT HISTORY (Separate DB) =========
+
+export interface ContentChatMessage {
+  id: string;
+  contentId: string;
+  clientId: string;
+  role: "user" | "assistant" | "system";
+  message: string;
+  sequenceNumber: number;
+  createdAt: string;
+}
+
+/**
+ * Save a chat message to the Content Chat History database
+ */
+export async function saveContentChatMessage(
+  contentId: string,
+  clientId: string,
+  role: "user" | "assistant" | "system",
+  message: string,
+  sequenceNumber: number
+): Promise<string | null> {
+  // Check if database is configured
+  if (!DB.contentChatHistory) {
+    console.log("Content Chat History DB not configured, skipping save");
+    return null;
+  }
+
+  try {
+    // Split message into chunks if > 2000 chars
+    const CHUNK_SIZE = 2000;
+    const part1 = message.substring(0, CHUNK_SIZE);
+    const part2 = message.substring(CHUNK_SIZE, CHUNK_SIZE * 2);
+    const part3 = message.substring(CHUNK_SIZE * 2, CHUNK_SIZE * 3);
+
+    const props: any = {
+      Name: { title: [{ text: { content: `${role}: ${message.substring(0, 50)}...` } }] },
+      Content: { relation: [{ id: contentId }] },
+      Client: { relation: [{ id: clientId }] },
+      Role: { select: { name: role } },
+      Message: { rich_text: [{ text: { content: part1 } }] },
+      "Sequence Number": { number: sequenceNumber },
+    };
+
+    // Add additional parts if message is long
+    if (part2) {
+      props["Message Part 2"] = { rich_text: [{ text: { content: part2 } }] };
+    }
+    if (part3) {
+      props["Message Part 3"] = { rich_text: [{ text: { content: part3 } }] };
+    }
+
+    const page = await notion.pages.create({
+      parent: { database_id: DB.contentChatHistory },
+      properties: props,
+    });
+
+    return page.id;
+  } catch (error) {
+    console.error("Error saving chat message:", error);
+    return null;
+  }
+}
+
+/**
+ * Get chat history for a content from the database
+ */
+export async function getContentChatHistory(contentId: string): Promise<ContentChatMessage[]> {
+  // Check if database is configured
+  if (!DB.contentChatHistory) {
+    console.log("Content Chat History DB not configured, returning empty");
+    return [];
+  }
+
+  try {
+    const res = await notion.databases.query({
+      database_id: DB.contentChatHistory,
+      filter: { property: "Content", relation: { contains: contentId } },
+      sorts: [{ property: "Sequence Number", direction: "ascending" }],
+    });
+
+    return res.results.map((page: any) => {
+      // Combine message parts
+      const part1 = getText(page.properties["Message"]) || "";
+      const part2 = getText(page.properties["Message Part 2"]) || "";
+      const part3 = getText(page.properties["Message Part 3"]) || "";
+      const fullMessage = part1 + part2 + part3;
+
+      return {
+        id: page.id,
+        contentId: (getText(page.properties["Content"]) as any)?.[0] || "",
+        clientId: (getText(page.properties["Client"]) as any)?.[0] || "",
+        role: getText(page.properties["Role"]) as "user" | "assistant" | "system",
+        message: fullMessage,
+        sequenceNumber: getNumber(page.properties["Sequence Number"]),
+        createdAt: page.created_time,
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching chat history:", error);
+    return [];
+  }
+}
+
+/**
+ * Delete all chat history for a content
+ */
+export async function clearContentChatHistory(contentId: string): Promise<void> {
+  if (!DB.contentChatHistory) return;
+
+  try {
+    const messages = await getContentChatHistory(contentId);
+    for (const msg of messages) {
+      await notion.pages.update({
+        page_id: msg.id,
+        archived: true,
+      });
+    }
+  } catch (error) {
+    console.error("Error clearing chat history:", error);
   }
 }
 
