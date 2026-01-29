@@ -1058,8 +1058,8 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
     }));
 
     // Get unique client and pillar IDs
-    const clientIds = [...new Set(contents.map(c => c.clientId).filter(Boolean))];
-    const pillarIds = [...new Set(contents.map(c => c.pillarId).filter(Boolean))];
+    const clientIds = Array.from(new Set(contents.map(c => c.clientId).filter(Boolean)));
+    const pillarIds = Array.from(new Set(contents.map(c => c.pillarId).filter(Boolean)));
 
     // Fetch client names
     const clientMap: Record<string, string> = {};
