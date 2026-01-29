@@ -59,6 +59,12 @@ function getNumber(prop: any): number {
   return 0;
 }
 
+// Get full rich_text content (joins all blocks)
+function getFullRichText(prop: any): string {
+  if (!prop || prop.type !== "rich_text") return "";
+  return prop.rich_text?.map((rt: any) => rt.plain_text || "").join("") || "";
+}
+
 // ========= CLIENTS =========
 
 export async function getClientByEmail(email: string) {
@@ -1521,7 +1527,8 @@ export async function createBriefConversation(briefId: string, role: "user" | "a
 export async function getClientCompiledContext(clientId: string): Promise<{ context: string; hash: string } | null> {
   try {
     const page = await notion.pages.retrieve({ page_id: clientId }) as any;
-    const compiledContext = getText(page.properties["Compiled Context"]);
+    // Use getFullRichText to join all chunks
+    const compiledContext = getFullRichText(page.properties["Compiled Context"]);
     const contextHash = getText(page.properties["Context Hash"]);
 
     if (compiledContext && contextHash) {
@@ -1535,10 +1542,21 @@ export async function getClientCompiledContext(clientId: string): Promise<{ cont
 }
 
 export async function updateClientCompiledContext(clientId: string, context: string, hash: string): Promise<void> {
+  // Notion rich_text has 2000 char limit per block, split into chunks
+  const CHUNK_SIZE = 2000;
+  const chunks: { text: { content: string } }[] = [];
+
+  for (let i = 0; i < context.length; i += CHUNK_SIZE) {
+    chunks.push({ text: { content: context.slice(i, i + CHUNK_SIZE) } });
+  }
+
+  // Notion allows max 100 rich_text blocks, but we'll limit to ~10 (20000 chars)
+  const limitedChunks = chunks.slice(0, 10);
+
   await notion.pages.update({
     page_id: clientId,
     properties: {
-      "Compiled Context": { rich_text: [{ text: { content: context } }] },
+      "Compiled Context": { rich_text: limitedChunks },
       "Context Hash": { rich_text: [{ text: { content: hash } }] },
       "Context Updated": { date: { start: new Date().toISOString().split("T")[0] } },
     },
