@@ -222,7 +222,7 @@ export default function DashboardPage() {
           </Link>
 
           <Link
-            href="/dashboard/playbook"
+            href="/dashboard/contents/new"
             className="group glass-card rounded-2xl p-6 card-hover animate-fade-in relative overflow-hidden"
             style={{ animationDelay: "600ms" }}
           >
@@ -232,10 +232,10 @@ export default function DashboardPage() {
                 <FileText className="w-6 h-6 text-white" />
               </div>
               <p className="font-semibold text-slate-800 group-hover:text-violet-600 transition-colors flex items-center gap-2">
-                Brand Playbook
+                Buat Konten
                 <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
               </p>
-              <p className="text-sm text-slate-500 mt-1">Lihat panduan brand kamu</p>
+              <p className="text-sm text-slate-500 mt-1">Mulai buat konten baru</p>
             </div>
           </Link>
         </div>

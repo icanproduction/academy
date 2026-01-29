@@ -1646,16 +1646,35 @@ export async function createBriefConversation(briefId: string, role: "user" | "a
 
 // ========= CLIENT CONTEXT COMPILATION =========
 
+// In-memory cache for compiled context (since Notion DB may not have these properties)
+const contextCache = new Map<string, { context: string; hash: string; timestamp: number }>();
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
 export async function getClientCompiledContext(clientId: string): Promise<{ context: string; hash: string } | null> {
   try {
-    const page = await notion.pages.retrieve({ page_id: clientId }) as any;
-    // Use getFullRichText to join all chunks
-    const compiledContext = getFullRichText(page.properties["Compiled Context"]);
-    const contextHash = getText(page.properties["Context Hash"]);
-
-    if (compiledContext && contextHash) {
-      return { context: compiledContext, hash: contextHash };
+    // Check in-memory cache first
+    const cached = contextCache.get(clientId);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return { context: cached.context, hash: cached.hash };
     }
+
+    // Try to get from Notion (if properties exist)
+    try {
+      const page = await notion.pages.retrieve({ page_id: clientId }) as any;
+      // Use getFullRichText to join all chunks
+      const compiledContext = getFullRichText(page.properties["Compiled Context"]);
+      const contextHash = getText(page.properties["Context Hash"]);
+
+      if (compiledContext && contextHash) {
+        // Update in-memory cache
+        contextCache.set(clientId, { context: compiledContext, hash: contextHash, timestamp: Date.now() });
+        return { context: compiledContext, hash: contextHash };
+      }
+    } catch (notionError: any) {
+      // Properties might not exist in Notion DB, that's okay - use cache only
+      console.log("Notion properties not available for context cache, using in-memory only");
+    }
+
     return null;
   } catch (error) {
     console.error("Error fetching compiled context:", error);
@@ -1664,25 +1683,34 @@ export async function getClientCompiledContext(clientId: string): Promise<{ cont
 }
 
 export async function updateClientCompiledContext(clientId: string, context: string, hash: string): Promise<void> {
-  // Notion rich_text has 2000 char limit per block, split into chunks
-  const CHUNK_SIZE = 2000;
-  const chunks: { text: { content: string } }[] = [];
+  // Always update in-memory cache
+  contextCache.set(clientId, { context, hash, timestamp: Date.now() });
 
-  for (let i = 0; i < context.length; i += CHUNK_SIZE) {
-    chunks.push({ text: { content: context.slice(i, i + CHUNK_SIZE) } });
+  // Try to update Notion (skip if properties don't exist)
+  try {
+    // Notion rich_text has 2000 char limit per block, split into chunks
+    const CHUNK_SIZE = 2000;
+    const chunks: { text: { content: string } }[] = [];
+
+    for (let i = 0; i < context.length; i += CHUNK_SIZE) {
+      chunks.push({ text: { content: context.slice(i, i + CHUNK_SIZE) } });
+    }
+
+    // Notion allows max 100 rich_text blocks, but we'll limit to ~10 (20000 chars)
+    const limitedChunks = chunks.slice(0, 10);
+
+    await notion.pages.update({
+      page_id: clientId,
+      properties: {
+        "Compiled Context": { rich_text: limitedChunks },
+        "Context Hash": { rich_text: [{ text: { content: hash } }] },
+        "Context Updated": { date: { start: new Date().toISOString().split("T")[0] } },
+      },
+    });
+  } catch (notionError: any) {
+    // Properties might not exist in Notion DB - that's okay, we have in-memory cache
+    console.log("Could not update Notion context cache (properties may not exist), using in-memory only");
   }
-
-  // Notion allows max 100 rich_text blocks, but we'll limit to ~10 (20000 chars)
-  const limitedChunks = chunks.slice(0, 10);
-
-  await notion.pages.update({
-    page_id: clientId,
-    properties: {
-      "Compiled Context": { rich_text: limitedChunks },
-      "Context Hash": { rich_text: [{ text: { content: hash } }] },
-      "Context Updated": { date: { start: new Date().toISOString().split("T")[0] } },
-    },
-  });
 }
 
 // ========= ICP (IDEAL CUSTOMER PROFILE) =========

@@ -164,6 +164,11 @@ export default function AdminClientDetailPage() {
   const [contextStatus, setContextStatus] = useState<{ cached: boolean; lastUpdated?: string }>({ cached: false });
   const [recompiling, setRecompiling] = useState(false);
 
+  // Asset modal
+  const [showAssetModal, setShowAssetModal] = useState(false);
+  const [newAsset, setNewAsset] = useState({ assetName: "", assetType: "Template", url: "", description: "" });
+  const [savingAsset, setSavingAsset] = useState(false);
+
   // Calculate current day based on start date
   const getCurrentDay = (startDate?: string): number => {
     if (!startDate) return 1;
@@ -323,6 +328,34 @@ export default function AdminClientDetailPage() {
       console.error("Error recompiling context:", error);
     } finally {
       setRecompiling(false);
+    }
+  };
+
+  const handleAddAsset = async () => {
+    if (!newAsset.assetName || !newAsset.url) return;
+
+    try {
+      setSavingAsset(true);
+      const res = await fetch(`/api/clients/${clientId}/assets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newAsset),
+      });
+
+      if (res.ok) {
+        setShowAssetModal(false);
+        setNewAsset({ assetName: "", assetType: "Template", url: "", description: "" });
+        // Refresh assets
+        const assetRes = await fetch(`/api/clients/${clientId}/assets`);
+        if (assetRes.ok) {
+          const data = await assetRes.json();
+          setAssets(Array.isArray(data) ? data : []);
+        }
+      }
+    } catch (error) {
+      console.error("Error adding asset:", error);
+    } finally {
+      setSavingAsset(false);
     }
   };
 
@@ -803,58 +836,56 @@ export default function AdminClientDetailPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-bold">Assets ({assets.length})</h2>
-              <Link
-                href={`/dashboard/admin/clients/${clientId}/assets`}
+              <button
+                onClick={() => setShowAssetModal(true)}
                 className="bg-accent hover:bg-accent-hover text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
               >
-                <Edit className="w-4 h-4" />
-                Manage Assets
-              </Link>
+                <Plus className="w-4 h-4" />
+                Tambah Asset
+              </button>
             </div>
 
             {assets.length > 0 ? (
               <div className="space-y-3">
                 {/* Group by type */}
-                {["Canva Template", "Font", "Logo", "Guidelines", "Other"].map((type) => {
+                {["Template", "Design", "Video", "Link", "Other"].map((type) => {
                   const typeAssets = assets.filter((a) => a.assetType === type);
                   if (typeAssets.length === 0) return null;
+
+                  const typeEmojis: Record<string, string> = {
+                    Template: "🎨",
+                    Design: "🖼️",
+                    Video: "🎬",
+                    Link: "🔗",
+                    Other: "📁",
+                  };
 
                   return (
                     <div key={type}>
                       <h3 className="text-sm font-medium text-slate-500 mb-2 flex items-center gap-2">
-                        {type === "Canva Template" && "🎨"}
-                        {type === "Font" && "🔤"}
-                        {type === "Logo" && "🖼️"}
-                        {type === "Guidelines" && "📋"}
-                        {type === "Other" && "📁"}
+                        {typeEmojis[type] || "📁"}
                         {type.toUpperCase()}
                       </h3>
-                      <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-3">
                         {typeAssets.map((asset) => (
-                          <div key={asset.id} className="glass-card rounded-xl p-4 flex items-center justify-between">
-                            <div>
-                              <p className="font-medium">{asset.assetName}</p>
+                          <a
+                            key={asset.id}
+                            href={asset.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="glass-card rounded-xl p-4 flex items-center justify-between hover:shadow-md hover:border-accent/30 transition-all group"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium group-hover:text-accent transition-colors truncate">{asset.assetName}</p>
                               {asset.description && (
-                                <p className="text-sm text-slate-500">{asset.description}</p>
+                                <p className="text-sm text-slate-500 truncate">{asset.description}</p>
                               )}
+                              <p className="text-xs text-slate-400 mt-1 truncate">
+                                {new URL(asset.url).hostname}
+                              </p>
                             </div>
-                            <div className="flex items-center gap-2">
-                              {asset.url && (
-                                <a
-                                  href={asset.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="px-3 py-1.5 text-sm text-accent bg-accent/10 rounded-lg hover:bg-accent/20 transition-colors flex items-center gap-1"
-                                >
-                                  Open
-                                  <ExternalLink className="w-3 h-3" />
-                                </a>
-                              )}
-                              <button className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
+                            <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-accent flex-shrink-0 ml-2" />
+                          </a>
                         ))}
                       </div>
                     </div>
@@ -865,14 +896,112 @@ export default function AdminClientDetailPage() {
               <div className="glass-card rounded-2xl p-12 text-center">
                 <FolderOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                 <h3 className="font-semibold mb-2">Belum ada assets</h3>
-                <p className="text-sm text-slate-500 mb-4">Upload template, font, logo, dan guidelines untuk client</p>
-                <Link
-                  href={`/dashboard/admin/clients/${clientId}/assets`}
+                <p className="text-sm text-slate-500 mb-4">Tambahkan link assets seperti template Canva, design files, dll</p>
+                <button
+                  onClick={() => setShowAssetModal(true)}
                   className="bg-accent hover:bg-accent-hover text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  Tambah Asset
-                </Link>
+                  Tambah Asset Pertama
+                </button>
+              </div>
+            )}
+
+            {/* Add Asset Modal */}
+            {showAssetModal && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fade-in">
+                  <div className="p-6 border-b border-slate-100">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold text-slate-800">Tambah Asset Baru</h2>
+                      <button
+                        onClick={() => setShowAssetModal(false)}
+                        className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                      >
+                        <span className="text-xl text-slate-500">&times;</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Nama Asset *
+                      </label>
+                      <input
+                        type="text"
+                        value={newAsset.assetName}
+                        onChange={(e) => setNewAsset({ ...newAsset, assetName: e.target.value })}
+                        placeholder="Contoh: Template Instagram Carousel"
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Tipe
+                      </label>
+                      <select
+                        value={newAsset.assetType}
+                        onChange={(e) => setNewAsset({ ...newAsset, assetType: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                      >
+                        <option value="Template">Template</option>
+                        <option value="Design">Design</option>
+                        <option value="Video">Video</option>
+                        <option value="Link">Link</option>
+                        <option value="Other">Lainnya</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        URL Link *
+                      </label>
+                      <input
+                        type="url"
+                        value={newAsset.url}
+                        onChange={(e) => setNewAsset({ ...newAsset, url: e.target.value })}
+                        placeholder="https://www.canva.com/design/..."
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Deskripsi (opsional)
+                      </label>
+                      <textarea
+                        value={newAsset.description}
+                        onChange={(e) => setNewAsset({ ...newAsset, description: e.target.value })}
+                        placeholder="Deskripsi singkat tentang asset ini..."
+                        rows={3}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all resize-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
+                    <button
+                      onClick={() => setShowAssetModal(false)}
+                      className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors font-medium"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      onClick={handleAddAsset}
+                      disabled={!newAsset.assetName || !newAsset.url || savingAsset}
+                      className="px-4 py-2.5 rounded-xl bg-accent text-white font-medium hover:bg-accent-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {savingAsset ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Menyimpan...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4" />
+                          Tambah Asset
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>

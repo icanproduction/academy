@@ -18,12 +18,14 @@ import {
   User,
   Database,
   PlusCircle,
+  FolderOpen,
 } from "lucide-react";
 
 const CLIENT_NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/knowledge", label: "Knowledge Bank", icon: Database },
   { href: "/dashboard/contents", label: "Konten Saya", icon: FileVideo },
+  { href: "/dashboard/assets", label: "Assets", icon: FolderOpen },
   { href: "/dashboard/course", label: "Materi", icon: Play },
   { href: "/dashboard/profile", label: "Profil Saya", icon: User },
 ];
