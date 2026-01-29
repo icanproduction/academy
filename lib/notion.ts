@@ -1,35 +1,38 @@
 import { Client } from "@notionhq/client";
 
 const notion = new Client({
-  auth: process.env.NOTION_API_KEY,
+  auth: process.env.NOTION_API_KEY?.trim(),
 });
 
+// Helper to safely get and trim env var
+const getDbId = (envVar: string | undefined): string => (envVar || "").trim();
+
 const DB = {
-  clients: process.env.NOTION_CLIENTS_DB_ID!,
-  progress: process.env.NOTION_PROGRESS_DB_ID!,
-  tasks: process.env.NOTION_TASKS_DB_ID!,
-  modules: process.env.NOTION_MODULES_DB_ID!,
-  lessons: process.env.NOTION_LESSONS_DB_ID!,
-  lessonProgress: process.env.NOTION_LESSON_PROGRESS_DB_ID!,
-  playbooks: process.env.NOTION_PLAYBOOKS_DB_ID!,
-  contentPillars: process.env.NOTION_CONTENT_PILLARS_DB_ID!,
-  contents: process.env.NOTION_CONTENTS_DB_ID!, // New main content table
-  contentComments: process.env.NOTION_CONTENT_COMMENTS_DB_ID!, // New comments table
-  contentReviews: process.env.NOTION_CONTENT_REVIEWS_DB_ID!, // New reviews table
+  clients: getDbId(process.env.NOTION_CLIENTS_DB_ID),
+  progress: getDbId(process.env.NOTION_PROGRESS_DB_ID),
+  tasks: getDbId(process.env.NOTION_TASKS_DB_ID),
+  modules: getDbId(process.env.NOTION_MODULES_DB_ID),
+  lessons: getDbId(process.env.NOTION_LESSONS_DB_ID),
+  lessonProgress: getDbId(process.env.NOTION_LESSON_PROGRESS_DB_ID),
+  playbooks: getDbId(process.env.NOTION_PLAYBOOKS_DB_ID),
+  contentPillars: getDbId(process.env.NOTION_CONTENT_PILLARS_DB_ID),
+  contents: getDbId(process.env.NOTION_CONTENTS_DB_ID), // New main content table
+  contentComments: getDbId(process.env.NOTION_CONTENT_COMMENTS_DB_ID), // New comments table
+  contentReviews: getDbId(process.env.NOTION_CONTENT_REVIEWS_DB_ID), // New reviews table
   // Deprecated - keeping for backwards compatibility
-  contentItems: process.env.NOTION_CONTENT_ITEMS_DB_ID!,
-  submissions: process.env.NOTION_SUBMISSIONS_DB_ID!,
-  reviews: process.env.NOTION_REVIEWS_DB_ID!,
-  assets: process.env.NOTION_ASSETS_DB_ID!,
-  calls: process.env.NOTION_CALLS_DB_ID!,
+  contentItems: getDbId(process.env.NOTION_CONTENT_ITEMS_DB_ID),
+  submissions: getDbId(process.env.NOTION_SUBMISSIONS_DB_ID),
+  reviews: getDbId(process.env.NOTION_REVIEWS_DB_ID),
+  assets: getDbId(process.env.NOTION_ASSETS_DB_ID),
+  calls: getDbId(process.env.NOTION_CALLS_DB_ID),
   // New databases for Client Portal & AI Brief Generator
-  knowledgeBank: process.env.NOTION_KNOWLEDGE_BANK_DB_ID!,
-  clientAssets: process.env.NOTION_CLIENT_ASSETS_DB_ID!,
-  clientICP: process.env.NOTION_CLIENT_ICP_DB_ID!,
-  clientProducts: process.env.NOTION_CLIENT_PRODUCTS_DB_ID!,
-  reelsBriefs: process.env.NOTION_REELS_BRIEFS_DB_ID!,
-  briefConversations: process.env.NOTION_BRIEF_CONVERSATIONS_DB_ID!,
-  targetAudience: process.env.NOTION_TARGET_AUDIENCE_DB_ID!,
+  knowledgeBank: getDbId(process.env.NOTION_KNOWLEDGE_BANK_DB_ID),
+  clientAssets: getDbId(process.env.NOTION_CLIENT_ASSETS_DB_ID),
+  clientICP: getDbId(process.env.NOTION_CLIENT_ICP_DB_ID),
+  clientProducts: getDbId(process.env.NOTION_CLIENT_PRODUCTS_DB_ID),
+  reelsBriefs: getDbId(process.env.NOTION_REELS_BRIEFS_DB_ID),
+  briefConversations: getDbId(process.env.NOTION_BRIEF_CONVERSATIONS_DB_ID),
+  targetAudience: getDbId(process.env.NOTION_TARGET_AUDIENCE_DB_ID),
 };
 
 // Helper to extract text from Notion property
