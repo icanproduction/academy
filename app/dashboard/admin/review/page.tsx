@@ -23,12 +23,23 @@ import {
   Trash2,
   Loader2,
   MessageSquare,
+  FileVideo,
+  Filter,
 } from "lucide-react";
 
 type ContentType = "reels" | "carousel" | "story";
-type ContentStatus = "idea_submitted" | "production_submitted";
+type ContentStatus =
+  | "draft"
+  | "idea_submitted"
+  | "revision_idea"
+  | "approved"
+  | "in_progress"
+  | "production_submitted"
+  | "revision_production"
+  | "ready_to_post"
+  | "posted";
 
-interface ReviewItem {
+interface ContentItem {
   id: string;
   uniqueId: string;
   title: string;
@@ -44,6 +55,7 @@ interface ReviewItem {
   referenceLinks: string;
   outputUrl: string;
   submittedAt: string;
+  createdAt: string;
 }
 
 interface RevisionItem {
@@ -57,12 +69,26 @@ const TYPE_CONFIG: Record<ContentType, { label: string; icon: any; color: string
   story: { label: "Story", icon: Smartphone, color: "from-purple-500 to-violet-500" },
 };
 
+const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  draft: { label: "Draft", color: "bg-slate-100 text-slate-600" },
+  idea_submitted: { label: "Review Ide", color: "bg-amber-100 text-amber-700" },
+  revision_idea: { label: "Revisi Ide", color: "bg-red-100 text-red-700" },
+  approved: { label: "Approved", color: "bg-blue-100 text-blue-700" },
+  in_progress: { label: "In Production", color: "bg-indigo-100 text-indigo-700" },
+  production_submitted: { label: "Review Produksi", color: "bg-purple-100 text-purple-700" },
+  revision_production: { label: "Revisi Produksi", color: "bg-red-100 text-red-700" },
+  ready_to_post: { label: "Ready", color: "bg-emerald-100 text-emerald-700" },
+  posted: { label: "Published", color: "bg-green-100 text-green-700" },
+};
+
+type FilterStatus = "pending_review" | "all" | "draft" | "in_progress" | "completed";
+
 export default function AdminReviewPage() {
-  const [queue, setQueue] = useState<ReviewItem[]>([]);
+  const [allContents, setAllContents] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [filterPhase, setFilterPhase] = useState<"all" | "ideation" | "production">("all");
-  const [selectedItem, setSelectedItem] = useState<ReviewItem | null>(null);
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>("pending_review");
+  const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
 
   // Review form states
   const [reviewDecision, setReviewDecision] = useState<"approved" | "revision">("approved");
@@ -70,43 +96,67 @@ export default function AdminReviewPage() {
   const [positiveFeedback, setPositiveFeedback] = useState("");
   const [scores, setScores] = useState({ concept: 0, visual: 0, caption: 0 });
 
-  // Fetch review queue from API
+  // Fetch all contents from API
   useEffect(() => {
-    const fetchQueue = async () => {
+    const fetchContents = async () => {
       try {
         setLoading(true);
-        const res = await fetch("/api/admin/review-queue");
+        const res = await fetch("/api/admin/review-queue?all=true");
         if (res.ok) {
           const data = await res.json();
-          // Ensure data is always an array
-          setQueue(Array.isArray(data) ? data : []);
+          setAllContents(Array.isArray(data) ? data : []);
         }
       } catch (error) {
-        console.error("Error fetching queue:", error);
-        setQueue([]);
+        console.error("Error fetching contents:", error);
+        setAllContents([]);
       } finally {
         setLoading(false);
       }
     };
-    fetchQueue();
+    fetchContents();
   }, []);
 
-  const ideationQueue = (queue || []).filter((item) => item.status === "idea_submitted");
-  const productionQueue = (queue || []).filter((item) => item.status === "production_submitted");
+  // Filter contents based on status
+  const pendingReviewContents = allContents.filter(
+    (item) => item.status === "idea_submitted" || item.status === "production_submitted"
+  );
+  const draftContents = allContents.filter((item) => item.status === "draft");
+  const inProgressContents = allContents.filter(
+    (item) => ["approved", "in_progress", "revision_idea", "revision_production"].includes(item.status)
+  );
+  const completedContents = allContents.filter(
+    (item) => ["ready_to_post", "posted"].includes(item.status)
+  );
 
-  const filteredQueue = filterPhase === "all"
-    ? queue
-    : filterPhase === "ideation"
-    ? ideationQueue
-    : productionQueue;
+  const getFilteredContents = () => {
+    switch (filterStatus) {
+      case "pending_review":
+        return pendingReviewContents;
+      case "draft":
+        return draftContents;
+      case "in_progress":
+        return inProgressContents;
+      case "completed":
+        return completedContents;
+      case "all":
+      default:
+        return allContents;
+    }
+  };
 
-  const selectItem = (item: ReviewItem) => {
+  const filteredContents = getFilteredContents();
+
+  const selectItem = (item: ContentItem) => {
     setSelectedItem(item);
     setReviewDecision("approved");
     setRevisions([{ id: "1", text: "" }]);
     setPositiveFeedback("");
     setScores({ concept: 0, visual: 0, caption: 0 });
   };
+
+  // Check if item needs review
+  const needsReview = (status: string) =>
+    status === "idea_submitted" || status === "production_submitted";
 
   // Revision handlers
   const addRevision = () => {
@@ -125,7 +175,6 @@ export default function AdminReviewPage() {
   const handleSubmitReview = async () => {
     if (!selectedItem) return;
 
-    // Validate
     const hasRevisions = revisions.some((r) => r.text.trim());
     if (reviewDecision === "revision" && !hasRevisions) {
       alert("Harap isi minimal satu poin revisi");
@@ -135,7 +184,6 @@ export default function AdminReviewPage() {
     try {
       setSubmitting(true);
 
-      // Combine feedback
       const feedback = reviewDecision === "revision"
         ? revisions.filter((r) => r.text.trim()).map((r) => `• ${r.text}`).join("\n")
         : positiveFeedback;
@@ -154,8 +202,19 @@ export default function AdminReviewPage() {
       });
 
       if (res.ok) {
-        // Remove from queue
-        setQueue((prev) => prev.filter((item) => item.id !== selectedItem.id));
+        // Update local state
+        setAllContents((prev) =>
+          prev.map((item) =>
+            item.id === selectedItem.id
+              ? {
+                  ...item,
+                  status: reviewDecision === "approved"
+                    ? (selectedItem.status === "idea_submitted" ? "approved" : "ready_to_post")
+                    : (selectedItem.status === "idea_submitted" ? "revision_idea" : "revision_production") as ContentStatus,
+                }
+              : item
+          )
+        );
         setSelectedItem(null);
       } else {
         alert("Gagal menyimpan review");
@@ -197,27 +256,25 @@ export default function AdminReviewPage() {
     );
   }
 
-  // Detail View
-  if (selectedItem) {
-    const typeConfig = TYPE_CONFIG[selectedItem.contentType];
+  // Detail View (Review Mode)
+  if (selectedItem && needsReview(selectedItem.status)) {
+    const typeConfig = TYPE_CONFIG[selectedItem.contentType] || { label: "Content", icon: FileVideo, color: "from-slate-500 to-slate-600" };
     const TypeIcon = typeConfig.icon;
     const isIdeation = selectedItem.status === "idea_submitted";
 
     return (
       <div className="p-8 max-w-6xl animate-fade-in">
-        {/* Back button */}
         <button
           onClick={() => setSelectedItem(null)}
           className="inline-flex items-center gap-2 text-sm text-fg-muted hover:text-fg mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Kembali ke Antrian
+          Kembali ke Daftar
         </button>
 
         <div className="grid grid-cols-3 gap-6">
           {/* Left: Content Details */}
           <div className="col-span-2 space-y-6">
-            {/* Header */}
             <div className="glass-card rounded-2xl p-6">
               <div className="flex items-start gap-4">
                 <div className={cn(
@@ -244,7 +301,7 @@ export default function AdminReviewPage() {
                     </span>
                     <span className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      Publish: {new Date(selectedItem.publishDate).toLocaleDateString("id-ID")}
+                      Publish: {selectedItem.publishDate ? new Date(selectedItem.publishDate).toLocaleDateString("id-ID") : "-"}
                     </span>
                     <span className="flex items-center gap-1">
                       {selectedItem.pillarEmoji} {selectedItem.pillarName}
@@ -254,7 +311,6 @@ export default function AdminReviewPage() {
               </div>
             </div>
 
-            {/* Caption */}
             <div className="glass-card rounded-2xl p-6">
               <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-accent" />
@@ -265,7 +321,6 @@ export default function AdminReviewPage() {
               </div>
             </div>
 
-            {/* Links */}
             {(selectedItem.referenceLinks || selectedItem.outputUrl) && (
               <div className="glass-card rounded-2xl p-6">
                 <h3 className="font-semibold text-slate-800 mb-3">Links</h3>
@@ -303,7 +358,6 @@ export default function AdminReviewPage() {
               </div>
             )}
 
-            {/* Platform info */}
             <div className="glass-card rounded-2xl p-6">
               <h3 className="font-semibold text-slate-800 mb-3">Platform & Type</h3>
               <div className="flex items-center gap-4">
@@ -314,12 +368,12 @@ export default function AdminReviewPage() {
                 <div>
                   <p className="text-xs text-slate-500 mb-1">Platform</p>
                   <div className="flex items-center gap-2">
-                    {selectedItem.platforms.includes("instagram") && (
+                    {selectedItem.platforms?.includes("instagram") && (
                       <span className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded text-xs">
                         <Instagram className="w-3 h-3" /> Instagram
                       </span>
                     )}
-                    {selectedItem.platforms.includes("tiktok") && (
+                    {selectedItem.platforms?.includes("tiktok") && (
                       <span className="flex items-center gap-1 px-2 py-1 bg-black text-white rounded text-xs">
                         TikTok
                       </span>
@@ -338,7 +392,6 @@ export default function AdminReviewPage() {
                 Review
               </h2>
 
-              {/* Decision */}
               <div className="mb-5">
                 <label className="text-sm font-medium text-slate-700 mb-2 block">Keputusan</label>
                 <div className="flex gap-2">
@@ -369,9 +422,7 @@ export default function AdminReviewPage() {
                 </div>
               </div>
 
-              {/* Conditional Feedback */}
               {reviewDecision === "revision" ? (
-                /* Multiple Revisions */
                 <div className="mb-5">
                   <label className="text-sm font-medium text-slate-700 mb-2 block">
                     Poin Revisi <span className="text-red-500">*</span>
@@ -408,7 +459,6 @@ export default function AdminReviewPage() {
                   </button>
                 </div>
               ) : (
-                /* Positive Feedback */
                 <div className="mb-5">
                   <label className="text-sm font-medium text-slate-700 mb-2 block">
                     Feedback (Opsional)
@@ -423,7 +473,6 @@ export default function AdminReviewPage() {
                 </div>
               )}
 
-              {/* Scores */}
               <div className="mb-5">
                 <label className="text-sm font-medium text-slate-700 mb-3 block">Skor (Opsional)</label>
                 <div className="space-y-2">
@@ -444,7 +493,6 @@ export default function AdminReviewPage() {
                 </div>
               </div>
 
-              {/* Submit */}
               <button
                 onClick={handleSubmitReview}
                 disabled={submitting || (reviewDecision === "revision" && !revisions.some((r) => r.text.trim()))}
@@ -471,7 +519,7 @@ export default function AdminReviewPage() {
     );
   }
 
-  // Queue List View
+  // List View
   return (
     <div className="p-8 max-w-6xl animate-fade-in">
       {/* Header */}
@@ -482,41 +530,54 @@ export default function AdminReviewPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Review Konten</h1>
-            <p className="text-slate-500">Review dan approve konten dari client</p>
+            <p className="text-slate-500">Kelola dan review semua konten dari client</p>
           </div>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-5 gap-4 mb-6">
         <div className="glass-card rounded-xl p-4">
-          <p className="text-sm text-slate-500">Total Antrian</p>
-          <p className="text-3xl font-bold text-slate-800">{queue.length}</p>
+          <p className="text-sm text-slate-500">Total Konten</p>
+          <p className="text-3xl font-bold text-slate-800">{allContents.length}</p>
+        </div>
+        <div className="glass-card rounded-xl p-4 border-l-4 border-amber-500">
+          <p className="text-sm text-slate-500">Perlu Review</p>
+          <p className="text-3xl font-bold text-amber-600">{pendingReviewContents.length}</p>
+        </div>
+        <div className="glass-card rounded-xl p-4 border-l-4 border-slate-400">
+          <p className="text-sm text-slate-500">Draft</p>
+          <p className="text-3xl font-bold text-slate-600">{draftContents.length}</p>
         </div>
         <div className="glass-card rounded-xl p-4 border-l-4 border-blue-500">
-          <p className="text-sm text-slate-500">Ideation Review</p>
-          <p className="text-3xl font-bold text-blue-600">{ideationQueue.length}</p>
+          <p className="text-sm text-slate-500">In Progress</p>
+          <p className="text-3xl font-bold text-blue-600">{inProgressContents.length}</p>
         </div>
-        <div className="glass-card rounded-xl p-4 border-l-4 border-purple-500">
-          <p className="text-sm text-slate-500">Production Review</p>
-          <p className="text-3xl font-bold text-purple-600">{productionQueue.length}</p>
+        <div className="glass-card rounded-xl p-4 border-l-4 border-green-500">
+          <p className="text-sm text-slate-500">Selesai</p>
+          <p className="text-3xl font-bold text-green-600">{completedContents.length}</p>
         </div>
       </div>
 
       {/* Filter */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-6">
+        <Filter className="w-4 h-4 text-slate-400" />
         {[
+          { id: "pending_review" as const, label: "Perlu Review", count: pendingReviewContents.length },
           { id: "all" as const, label: "Semua" },
-          { id: "ideation" as const, label: "Ideation", count: ideationQueue.length },
-          { id: "production" as const, label: "Production", count: productionQueue.length },
+          { id: "draft" as const, label: "Draft", count: draftContents.length },
+          { id: "in_progress" as const, label: "In Progress", count: inProgressContents.length },
+          { id: "completed" as const, label: "Selesai", count: completedContents.length },
         ].map((filter) => (
           <button
             key={filter.id}
-            onClick={() => setFilterPhase(filter.id)}
+            onClick={() => setFilterStatus(filter.id)}
             className={cn(
               "px-4 py-2 rounded-xl font-medium text-sm transition-all flex items-center gap-2",
-              filterPhase === filter.id
-                ? "bg-blue-50 text-blue-600"
+              filterStatus === filter.id
+                ? filter.id === "pending_review"
+                  ? "bg-amber-50 text-amber-600"
+                  : "bg-blue-50 text-blue-600"
                 : "text-slate-500 hover:bg-slate-50"
             )}
           >
@@ -524,7 +585,9 @@ export default function AdminReviewPage() {
             {filter.count !== undefined && (
               <span className={cn(
                 "px-1.5 py-0.5 rounded-md text-xs",
-                filterPhase === filter.id ? "bg-blue-100" : "bg-slate-100"
+                filterStatus === filter.id
+                  ? filter.id === "pending_review" ? "bg-amber-100" : "bg-blue-100"
+                  : "bg-slate-100"
               )}>
                 {filter.count}
               </span>
@@ -533,32 +596,50 @@ export default function AdminReviewPage() {
         ))}
       </div>
 
-      {/* Queue List */}
+      {/* Content List */}
       <div className="space-y-4">
-        {filteredQueue.length === 0 ? (
+        {filteredContents.length === 0 ? (
           <div className="glass-card rounded-2xl p-12 text-center">
-            <CheckCircle className="w-16 h-16 text-emerald-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-slate-700 mb-2">
-              {queue.length === 0 ? "Belum ada konten yang perlu direview" : "Semua sudah direview!"}
-            </h3>
-            <p className="text-slate-500">
-              {queue.length === 0
-                ? "Konten akan muncul di sini ketika client submit untuk review."
-                : "Tidak ada konten yang menunggu review saat ini."}
-            </p>
+            {filterStatus === "pending_review" ? (
+              <>
+                <CheckCircle className="w-16 h-16 text-emerald-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-slate-700 mb-2">
+                  Tidak ada konten yang perlu direview
+                </h3>
+                <p className="text-slate-500">
+                  Semua konten sudah direview. Gunakan filter lain untuk melihat konten lainnya.
+                </p>
+              </>
+            ) : (
+              <>
+                <FileVideo className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-slate-700 mb-2">
+                  Tidak ada konten
+                </h3>
+                <p className="text-slate-500">
+                  Belum ada konten dengan status ini.
+                </p>
+              </>
+            )}
           </div>
         ) : (
-          filteredQueue.map((item, index) => {
-            const typeConfig = TYPE_CONFIG[item.contentType];
+          filteredContents.map((item, index) => {
+            const typeConfig = TYPE_CONFIG[item.contentType] || { label: "Content", icon: FileVideo, color: "from-slate-500 to-slate-600" };
             const TypeIcon = typeConfig.icon;
-            const isIdeation = item.status === "idea_submitted";
+            const statusConfig = STATUS_CONFIG[item.status] || { label: item.status, color: "bg-slate-100 text-slate-600" };
+            const isReviewable = needsReview(item.status);
 
             return (
               <div
                 key={item.id}
-                className="glass-card rounded-2xl p-5 animate-fade-in cursor-pointer hover:shadow-md hover:border-accent/30 transition-all"
-                style={{ animationDelay: `${index * 50}ms` }}
-                onClick={() => selectItem(item)}
+                className={cn(
+                  "glass-card rounded-2xl p-5 animate-fade-in transition-all",
+                  isReviewable
+                    ? "cursor-pointer hover:shadow-md hover:border-amber-300"
+                    : "hover:shadow-sm"
+                )}
+                style={{ animationDelay: `${index * 30}ms` }}
+                onClick={() => isReviewable && selectItem(item)}
               >
                 <div className="flex items-start gap-4">
                   {/* Type Icon */}
@@ -576,9 +657,9 @@ export default function AdminReviewPage() {
                         <div className="flex items-center gap-2 mb-1">
                           <span className={cn(
                             "px-2 py-0.5 rounded-md text-xs font-medium",
-                            isIdeation ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
+                            statusConfig.color
                           )}>
-                            {isIdeation ? "Ideation" : "Production"}
+                            {statusConfig.label}
                           </span>
                           <span className="text-sm text-slate-400 font-mono">{item.uniqueId}</span>
                         </div>
@@ -593,11 +674,13 @@ export default function AdminReviewPage() {
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        Publish: {new Date(item.publishDate).toLocaleDateString("id-ID")}
+                        {item.publishDate
+                          ? new Date(item.publishDate).toLocaleDateString("id-ID")
+                          : "No date"}
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
-                        Submitted: {new Date(item.submittedAt).toLocaleString("id-ID")}
+                        {new Date(item.createdAt).toLocaleDateString("id-ID")}
                       </span>
                     </div>
 
@@ -606,12 +689,12 @@ export default function AdminReviewPage() {
                       <span className="text-sm text-slate-500">{item.pillarEmoji} {item.pillarName}</span>
                       <span className="text-slate-300">|</span>
                       <div className="flex items-center gap-1">
-                        {item.platforms.includes("instagram") && (
+                        {item.platforms?.includes("instagram") && (
                           <span className="w-5 h-5 rounded bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                             <Instagram className="w-3 h-3 text-white" />
                           </span>
                         )}
-                        {item.platforms.includes("tiktok") && (
+                        {item.platforms?.includes("tiktok") && (
                           <span className="w-5 h-5 rounded bg-black flex items-center justify-center">
                             <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
                               <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
@@ -636,12 +719,21 @@ export default function AdminReviewPage() {
                         Output
                       </a>
                     )}
-                    <button
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg font-medium shadow-lg shadow-indigo-500/25 hover:shadow-xl transition-all"
-                    >
-                      <ClipboardCheck className="w-4 h-4" />
-                      Review
-                    </button>
+                    {isReviewable ? (
+                      <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-medium shadow-lg shadow-amber-500/25 hover:shadow-xl transition-all">
+                        <ClipboardCheck className="w-4 h-4" />
+                        Review
+                      </button>
+                    ) : (
+                      <Link
+                        href={`/dashboard/contents/${item.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg font-medium hover:bg-slate-200 transition-all"
+                      >
+                        <Eye className="w-4 h-4" />
+                        Lihat
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>

@@ -1099,6 +1099,84 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
   }
 }
 
+// Get all contents with client and pillar info (for admin)
+export async function getAllContentsWithDetails(): Promise<ReviewQueueItem[]> {
+  try {
+    const res = await notion.databases.query({
+      database_id: DB.contents,
+      sorts: [{ timestamp: "created_time", direction: "descending" }],
+    });
+
+    // Map basic content data
+    const contents = res.results.map((page: any) => ({
+      id: page.id,
+      uniqueId: getText(page.properties["Unique ID"]),
+      clientId: (getText(page.properties["Client"]) as any)?.[0] || "",
+      pillarId: (getText(page.properties["Pillar"]) as any)?.[0] || "",
+      title: getText(page.properties["Title"]),
+      caption: getText(page.properties["Caption"]),
+      contentType: getText(page.properties["Content Type"]) as ContentType,
+      platforms: getText(page.properties["Platform"]) as ContentPlatform[],
+      publishDate: getText(page.properties["Publish Date"]),
+      status: getText(page.properties["Status"]) as ContentStatus,
+      referenceLinks: getText(page.properties["Reference Links"]),
+      durationSeconds: getNumber(page.properties["Duration Seconds"]),
+      audioReference: getText(page.properties["Audio Reference"]),
+      slideCount: getNumber(page.properties["Slide Count"]),
+      slideNotes: getText(page.properties["Slide Notes"]),
+      ctaNotes: getText(page.properties["CTA Notes"]),
+      outputFiles: getText(page.properties["Output Files"]) as string[],
+      outputUrl: getText(page.properties["Output URL"]),
+      thumbnail: getText(page.properties["Thumbnail"]) as string[],
+      notes: getText(page.properties["Notes"]),
+      createdAt: page.created_time,
+      submittedAt: getText(page.properties["Submitted At"]),
+      approvedAt: getText(page.properties["Approved At"]),
+      postedAt: getText(page.properties["Posted At"]),
+    }));
+
+    // Get unique client and pillar IDs
+    const clientIds = Array.from(new Set(contents.map(c => c.clientId).filter(Boolean)));
+    const pillarIds = Array.from(new Set(contents.map(c => c.pillarId).filter(Boolean)));
+
+    // Fetch client names
+    const clientMap: Record<string, string> = {};
+    for (const clientId of clientIds) {
+      try {
+        const clientPage = await notion.pages.retrieve({ page_id: clientId }) as any;
+        clientMap[clientId] = getText(clientPage.properties["Name"]) || "Unknown";
+      } catch {
+        clientMap[clientId] = "Unknown";
+      }
+    }
+
+    // Fetch pillar info
+    const pillarMap: Record<string, { name: string; emoji: string }> = {};
+    for (const pillarId of pillarIds) {
+      try {
+        const pillarPage = await notion.pages.retrieve({ page_id: pillarId }) as any;
+        pillarMap[pillarId] = {
+          name: getText(pillarPage.properties["Name"]) || "",
+          emoji: getText(pillarPage.properties["Emoji"]) || "",
+        };
+      } catch {
+        pillarMap[pillarId] = { name: "", emoji: "" };
+      }
+    }
+
+    // Enrich contents with client and pillar info
+    return contents.map(content => ({
+      ...content,
+      clientName: clientMap[content.clientId] || "Unknown",
+      pillarName: pillarMap[content.pillarId]?.name || "",
+      pillarEmoji: pillarMap[content.pillarId]?.emoji || "",
+    }));
+  } catch (error) {
+    console.error("Error fetching all contents:", error);
+    return [];
+  }
+}
+
 // ========= CLIENT HELPERS =========
 
 export async function getClientById(clientId: string) {

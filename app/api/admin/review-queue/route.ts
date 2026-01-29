@@ -1,10 +1,17 @@
-import { NextResponse } from "next/server";
-import { getReviewQueue } from "@/lib/notion";
+import { NextRequest, NextResponse } from "next/server";
+import { getReviewQueue, getAllContentsWithDetails } from "@/lib/notion";
 
-// GET /api/admin/review-queue - Get all contents awaiting review
-export async function GET() {
+// GET /api/admin/review-queue - Get contents for review
+// Query params:
+// - all=true: Get all contents (not just pending review)
+export async function GET(request: NextRequest) {
   try {
-    const contents = await getReviewQueue();
+    const { searchParams } = new URL(request.url);
+    const all = searchParams.get("all") === "true";
+
+    const contents = all
+      ? await getAllContentsWithDetails()
+      : await getReviewQueue();
 
     return NextResponse.json(contents);
   } catch (error: any) {
