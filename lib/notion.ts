@@ -1109,7 +1109,7 @@ export async function getAllContentsWithDetails(): Promise<ReviewQueueItem[]> {
       sorts: [{ timestamp: "created_time", direction: "descending" }],
     });
 
-    // Map basic content data
+    // Map basic content data including AI generated fields
     const contents = res.results.map((page: any) => ({
       id: page.id,
       uniqueId: getText(page.properties["Unique ID"]),
@@ -1135,6 +1135,11 @@ export async function getAllContentsWithDetails(): Promise<ReviewQueueItem[]> {
       submittedAt: getText(page.properties["Submitted At"]),
       approvedAt: getText(page.properties["Approved At"]),
       postedAt: getText(page.properties["Posted At"]),
+      // AI Generated fields for Brief
+      description: getText(page.properties["Description"]),
+      generatedHook: getText(page.properties["AI Generated Hook"]),
+      generatedStructure: getText(page.properties["AI Generated Structure"]),
+      generatedCaption: getText(page.properties["AI Generated Caption"]),
     }));
 
     // Get unique client and pillar IDs

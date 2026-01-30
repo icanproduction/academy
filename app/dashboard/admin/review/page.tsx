@@ -56,11 +56,20 @@ interface ContentItem {
   outputUrl: string;
   submittedAt: string;
   createdAt: string;
+  description?: string;
+  durationSeconds?: number;
+  audioReference?: string;
+  notes?: string;
+  generatedHook?: string;
+  generatedStructure?: string;
+  generatedCaption?: string;
 }
 
 interface RevisionItem {
   id: string;
   text: string;
+  timestampStart: string;
+  timestampEnd: string;
 }
 
 const TYPE_CONFIG: Record<ContentType, { label: string; icon: any; color: string }> = {
@@ -92,7 +101,7 @@ export default function AdminReviewPage() {
 
   // Review form states
   const [reviewDecision, setReviewDecision] = useState<"approved" | "revision">("approved");
-  const [revisions, setRevisions] = useState<RevisionItem[]>([{ id: "1", text: "" }]);
+  const [revisions, setRevisions] = useState<RevisionItem[]>([{ id: "1", text: "", timestampStart: "", timestampEnd: "" }]);
   const [positiveFeedback, setPositiveFeedback] = useState("");
   const [scores, setScores] = useState({ concept: 0, visual: 0, caption: 0 });
 
@@ -149,7 +158,7 @@ export default function AdminReviewPage() {
   const selectItem = (item: ContentItem) => {
     setSelectedItem(item);
     setReviewDecision("approved");
-    setRevisions([{ id: "1", text: "" }]);
+    setRevisions([{ id: "1", text: "", timestampStart: "", timestampEnd: "" }]);
     setPositiveFeedback("");
     setScores({ concept: 0, visual: 0, caption: 0 });
   };
@@ -160,11 +169,11 @@ export default function AdminReviewPage() {
 
   // Revision handlers
   const addRevision = () => {
-    setRevisions([...revisions, { id: Date.now().toString(), text: "" }]);
+    setRevisions([...revisions, { id: Date.now().toString(), text: "", timestampStart: "", timestampEnd: "" }]);
   };
 
-  const updateRevision = (id: string, text: string) => {
-    setRevisions(revisions.map((r) => (r.id === id ? { ...r, text } : r)));
+  const updateRevision = (id: string, field: keyof RevisionItem, value: string) => {
+    setRevisions(revisions.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
   };
 
   const removeRevision = (id: string) => {
@@ -184,8 +193,14 @@ export default function AdminReviewPage() {
     try {
       setSubmitting(true);
 
+      // Format revision with timestamps for video content
       const feedback = reviewDecision === "revision"
-        ? revisions.filter((r) => r.text.trim()).map((r) => `• ${r.text}`).join("\n")
+        ? revisions.filter((r) => r.text.trim()).map((r) => {
+            const timestamp = (r.timestampStart || r.timestampEnd)
+              ? ` [${r.timestampStart || "0"}s - ${r.timestampEnd || "end"}s]`
+              : "";
+            return `• ${r.text}${timestamp}`;
+          }).join("\n")
         : positiveFeedback;
 
       const res = await fetch(`/api/contents/${selectedItem.id}/reviews`, {
@@ -311,6 +326,19 @@ export default function AdminReviewPage() {
               </div>
             </div>
 
+            {/* Description / Ide Awal */}
+            {selectedItem.description && (
+              <div className="glass-card rounded-2xl p-6">
+                <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                  <FileVideo className="w-5 h-5 text-indigo-500" />
+                  Deskripsi / Ide Awal
+                </h3>
+                <div className="p-4 bg-slate-50 rounded-xl text-sm text-slate-700 whitespace-pre-wrap">
+                  {selectedItem.description}
+                </div>
+              </div>
+            )}
+
             <div className="glass-card rounded-2xl p-6">
               <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-accent" />
@@ -320,6 +348,42 @@ export default function AdminReviewPage() {
                 {selectedItem.caption || "Tidak ada caption"}
               </div>
             </div>
+
+            {/* Brief - AI Generated Content */}
+            {(selectedItem.generatedHook || selectedItem.generatedStructure || selectedItem.generatedCaption) && (
+              <div className="glass-card rounded-2xl p-6">
+                <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                  <Star className="w-5 h-5 text-violet-500" />
+                  Brief (AI Generated)
+                </h3>
+                <div className="space-y-4">
+                  {selectedItem.generatedHook && (
+                    <div>
+                      <p className="text-xs font-medium text-violet-600 mb-1.5">Hook Options</p>
+                      <div className="p-3 bg-violet-50 rounded-lg text-sm text-slate-700 whitespace-pre-wrap border border-violet-100">
+                        {selectedItem.generatedHook}
+                      </div>
+                    </div>
+                  )}
+                  {selectedItem.generatedStructure && (
+                    <div>
+                      <p className="text-xs font-medium text-blue-600 mb-1.5">Struktur Konten</p>
+                      <div className="p-3 bg-blue-50 rounded-lg text-sm text-slate-700 whitespace-pre-wrap border border-blue-100">
+                        {selectedItem.generatedStructure}
+                      </div>
+                    </div>
+                  )}
+                  {selectedItem.generatedCaption && (
+                    <div>
+                      <p className="text-xs font-medium text-emerald-600 mb-1.5">Draft Caption</p>
+                      <div className="p-3 bg-emerald-50 rounded-lg text-sm text-slate-700 whitespace-pre-wrap border border-emerald-100">
+                        {selectedItem.generatedCaption}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {(selectedItem.referenceLinks || selectedItem.outputUrl) && (
               <div className="glass-card rounded-2xl p-6">
@@ -427,25 +491,53 @@ export default function AdminReviewPage() {
                   <label className="text-sm font-medium text-slate-700 mb-2 block">
                     Poin Revisi <span className="text-red-500">*</span>
                   </label>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {revisions.map((revision, index) => (
-                      <div key={revision.id} className="flex gap-2">
-                        <span className="w-6 h-10 flex items-center justify-center text-xs text-slate-400 font-medium">
-                          {index + 1}.
-                        </span>
-                        <input
-                          value={revision.text}
-                          onChange={(e) => updateRevision(revision.id, e.target.value)}
-                          placeholder="Apa yang perlu direvisi..."
-                          className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-                        />
-                        {revisions.length > 1 && (
-                          <button
-                            onClick={() => removeRevision(revision.id)}
-                            className="p-2 text-slate-400 hover:text-red-500 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                      <div key={revision.id} className="p-3 bg-slate-50 rounded-lg space-y-2">
+                        <div className="flex gap-2">
+                          <span className="w-6 h-9 flex items-center justify-center text-xs text-slate-400 font-medium">
+                            {index + 1}.
+                          </span>
+                          <input
+                            value={revision.text}
+                            onChange={(e) => updateRevision(revision.id, "text", e.target.value)}
+                            placeholder="Apa yang perlu direvisi..."
+                            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all bg-white"
+                          />
+                          {revisions.length > 1 && (
+                            <button
+                              onClick={() => removeRevision(revision.id)}
+                              className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                        {/* Timestamp inputs for video content */}
+                        {selectedItem?.contentType === "reels" && (
+                          <div className="flex items-center gap-2 pl-8">
+                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="text-xs text-slate-500">Timestamp:</span>
+                            <input
+                              type="number"
+                              value={revision.timestampStart}
+                              onChange={(e) => updateRevision(revision.id, "timestampStart", e.target.value)}
+                              placeholder="0"
+                              min="0"
+                              className="w-16 px-2 py-1 border border-slate-200 rounded text-xs text-center focus:ring-1 focus:ring-amber-500/20 focus:border-amber-500 bg-white"
+                            />
+                            <span className="text-xs text-slate-400">detik</span>
+                            <span className="text-slate-400">-</span>
+                            <input
+                              type="number"
+                              value={revision.timestampEnd}
+                              onChange={(e) => updateRevision(revision.id, "timestampEnd", e.target.value)}
+                              placeholder="0"
+                              min="0"
+                              className="w-16 px-2 py-1 border border-slate-200 rounded text-xs text-center focus:ring-1 focus:ring-amber-500/20 focus:border-amber-500 bg-white"
+                            />
+                            <span className="text-xs text-slate-400">detik</span>
+                          </div>
                         )}
                       </div>
                     ))}

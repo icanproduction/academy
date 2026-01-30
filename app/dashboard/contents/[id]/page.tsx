@@ -439,7 +439,8 @@ export default function ContentDetailPage() {
     { id: "history" as const, label: "Review", icon: History, count: reviews.length },
   ];
 
-  const canUseAI = content.status === "idea_draft" || content.status === "idea_revision";
+  // AI Assistant now available for all statuses
+  const canUseAI = true;
   const canEdit = content.status === "idea_draft" || content.status === "idea_revision";
 
   return (
@@ -801,7 +802,7 @@ export default function ContentDetailPage() {
         {/* AI Assistant Tab */}
         {activeTab === "ai" && (
           <div className="animate-fade-in">
-            {!canUseAI ? (
+            {false ? ( // AI now available for all statuses
               <div className="text-center py-8">
                 <Bot className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-slate-700 mb-2">AI Assistant tidak tersedia</h3>
