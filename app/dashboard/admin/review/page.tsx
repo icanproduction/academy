@@ -39,6 +39,21 @@ type ContentStatus =
   | "ready_to_post"
   | "posted";
 
+interface BriefField {
+  id: string;
+  type: string;
+  label: string;
+  value: string;
+}
+
+interface BriefSection {
+  id: string;
+  order: number;
+  title: string;
+  duration: number;
+  fields: BriefField[];
+}
+
 interface ContentItem {
   id: string;
   uniqueId: string;
@@ -63,6 +78,7 @@ interface ContentItem {
   generatedHook?: string;
   generatedStructure?: string;
   generatedCaption?: string;
+  briefSections?: BriefSection[];
 }
 
 interface RevisionItem {
@@ -349,8 +365,42 @@ export default function AdminReviewPage() {
               </div>
             </div>
 
-            {/* Brief - AI Generated Content */}
-            {(selectedItem.generatedHook || selectedItem.generatedStructure || selectedItem.generatedCaption) && (
+            {/* Brief Sections */}
+            {selectedItem.briefSections && selectedItem.briefSections.length > 0 && (
+              <div className="glass-card rounded-2xl p-6">
+                <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                  <Star className="w-5 h-5 text-violet-500" />
+                  Brief Sections
+                </h3>
+                <div className="space-y-4">
+                  {selectedItem.briefSections
+                    .sort((a, b) => a.order - b.order)
+                    .map((section) => (
+                      <div key={section.id} className="border border-slate-200 rounded-xl overflow-hidden">
+                        <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                          <span className="font-medium text-slate-700">{section.title}</span>
+                          <span className="text-xs text-slate-500">{section.duration}s</span>
+                        </div>
+                        <div className="p-4 space-y-2">
+                          {section.fields.map((field) => (
+                            <div key={field.id} className="flex gap-2 text-sm">
+                              <span className="text-slate-500 shrink-0 w-24">{field.label}:</span>
+                              <span className="text-slate-700">{field.value || "(empty)"}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  <div className="text-sm text-slate-500 text-right">
+                    Total: {selectedItem.briefSections.reduce((sum, s) => sum + s.duration, 0)} seconds
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Legacy AI Generated Content (fallback) */}
+            {(!selectedItem.briefSections || selectedItem.briefSections.length === 0) &&
+             (selectedItem.generatedHook || selectedItem.generatedStructure || selectedItem.generatedCaption) && (
               <div className="glass-card rounded-2xl p-6">
                 <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
                   <Star className="w-5 h-5 text-violet-500" />

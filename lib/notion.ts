@@ -1140,6 +1140,15 @@ export async function getAllContentsWithDetails(): Promise<ReviewQueueItem[]> {
       generatedHook: getText(page.properties["AI Generated Hook"]),
       generatedStructure: getText(page.properties["AI Generated Structure"]),
       generatedCaption: getText(page.properties["AI Generated Caption"]),
+      // Brief Sections (JSON stored in rich_text)
+      briefSections: (() => {
+        try {
+          const raw = getText(page.properties["Brief Sections"]);
+          return raw ? JSON.parse(raw) : [];
+        } catch {
+          return [];
+        }
+      })(),
     }));
 
     // Get unique client and pillar IDs

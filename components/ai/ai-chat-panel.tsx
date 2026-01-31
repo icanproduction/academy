@@ -63,13 +63,19 @@ export function AIChatPanel({
     onMessagesChange(updatedMessages);
 
     try {
+      // Format conversation history for API (only role and content)
+      const historyForApi = messages.slice(-10).map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
       const response = await fetch(`/api/contents/${contentId}/ai/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: userMessage.content,
           briefSections,
-          conversationHistory: messages.slice(-10),
+          conversationHistory: historyForApi,
         }),
       });
 

@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { notion } from "@/lib/notion";
 
+// Helper to split text into chunks of max length
+function splitIntoChunks(text: string, maxLength: number): string[] {
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += maxLength) {
+    chunks.push(text.substring(i, i + maxLength));
+  }
+  return chunks;
+}
+
 // GET /api/contents/[id]/brief - Get brief sections
 export async function GET(
   request: NextRequest,
@@ -13,12 +22,15 @@ export async function GET(
       page_id: contentId,
     })) as any;
 
-    const briefSectionsRaw =
-      page.properties["Brief Sections"]?.rich_text?.[0]?.plain_text || "[]";
+    // Combine all rich_text blocks into one string
+    const richTextBlocks = page.properties["Brief Sections"]?.rich_text || [];
+    const briefSectionsRaw = richTextBlocks
+      .map((block: any) => block.plain_text || "")
+      .join("");
 
     let sections = [];
     try {
-      sections = JSON.parse(briefSectionsRaw);
+      sections = briefSectionsRaw ? JSON.parse(briefSectionsRaw) : [];
     } catch {
       sections = [];
     }
@@ -53,42 +65,32 @@ export async function PUT(
       );
     }
 
-    // Convert to JSON string (Notion rich_text has 2000 char limit per block)
+    // Convert to JSON string
     const sectionsJson = JSON.stringify(sections);
 
-    // If content is too long, we need to split it
-    // For now, we'll store as-is and handle truncation if needed
-    const maxLength = 2000;
-    const truncated = sectionsJson.length > maxLength;
+    // Split into 2000 char chunks (Notion rich_text limit)
+    const CHUNK_SIZE = 2000;
+    const chunks = splitIntoChunks(sectionsJson, CHUNK_SIZE);
+
+    // Convert chunks to Notion rich_text format
+    const richTextBlocks = chunks.map((chunk) => ({
+      type: "text" as const,
+      text: { content: chunk },
+    }));
 
     await notion.pages.update({
       page_id: contentId,
       properties: {
         "Brief Sections": {
-          rich_text: [
-            {
-              type: "text",
-              text: {
-                content: truncated
-                  ? sectionsJson.substring(0, maxLength)
-                  : sectionsJson,
-              },
-            },
-          ],
+          rich_text: richTextBlocks,
         },
       },
     });
 
-    // If truncated, we should warn but still save
-    if (truncated) {
-      console.warn(
-        `Brief sections for ${contentId} truncated to ${maxLength} chars`
-      );
-    }
-
     return NextResponse.json({
       success: true,
-      truncated,
+      charCount: sectionsJson.length,
+      chunks: chunks.length,
     });
   } catch (error: any) {
     console.error("Error updating brief:", error);
