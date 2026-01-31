@@ -28,6 +28,7 @@ import {
   generateId,
   createField,
 } from "@/types/brief";
+import { useAutoSave } from "@/hooks/use-auto-save";
 
 type ContentType = "reels" | "carousel" | "story";
 type ContentStatus =
@@ -193,13 +194,14 @@ export default function ContentDetailPage() {
           }
         }
 
-        // Fetch chat history
+        // Fetch chat history from API
         const chatRes = await fetch(`/api/contents/${contentId}/chat?full=true`);
+        let apiMessages: ChatMessage[] = [];
         if (chatRes.ok) {
           const data = await chatRes.json();
           if (data.success && data.data?.chatHistory) {
             // Convert to ChatMessage format
-            const messages = data.data.chatHistory.map(
+            apiMessages = data.data.chatHistory.map(
               (msg: any, idx: number) => ({
                 id: `msg-${idx}`,
                 role: msg.role,
@@ -207,8 +209,27 @@ export default function ContentDetailPage() {
                 timestamp: new Date().toISOString(),
               })
             );
-            setChatMessages(messages);
           }
+        }
+
+        // Also check localStorage for chat history (as fallback/merge)
+        const localStorageKey = `ican_chat_${contentId}`;
+        let localMessages: ChatMessage[] = [];
+        try {
+          const savedChat = localStorage.getItem(localStorageKey);
+          if (savedChat) {
+            localMessages = JSON.parse(savedChat);
+          }
+        } catch (err) {
+          console.error("Error loading chat from localStorage:", err);
+        }
+
+        // Use whichever has more messages (API or localStorage)
+        // This ensures we don't lose chat history
+        if (apiMessages.length >= localMessages.length) {
+          setChatMessages(apiMessages);
+        } else {
+          setChatMessages(localMessages);
         }
 
         // Fetch revision feedback if in revision status
@@ -233,7 +254,7 @@ export default function ContentDetailPage() {
   }, [contentId]);
 
   // Save brief sections
-  const saveBrief = async () => {
+  const saveBrief = useCallback(async () => {
     if (!content) return;
     setSaving(true);
     try {
@@ -248,6 +269,22 @@ export default function ContentDetailPage() {
     } finally {
       setSaving(false);
     }
+  }, [content, contentId, briefSections]);
+
+  // Auto-save hook (saves every 2 minutes if there are changes)
+  const { lastSaved, isSaving: isAutoSaving, hasUnsavedChanges } = useAutoSave(
+    briefSections,
+    {
+      interval: 120000, // 2 minutes
+      onSave: saveBrief,
+      enabled: isEditable && briefSections.length > 0,
+    }
+  );
+
+  // Format last saved time
+  const formatLastSaved = (date: Date | null) => {
+    if (!date) return null;
+    return date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
   };
 
   // Handle AI suggestion apply
@@ -472,6 +509,28 @@ export default function ContentDetailPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Auto-save indicator */}
+              {isEditable && (
+                <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                  {isAutoSaving || saving ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : lastSaved ? (
+                    <>
+                      <CheckCircle className="w-3 h-3 text-green-500" />
+                      <span>Saved {formatLastSaved(lastSaved)}</span>
+                    </>
+                  ) : hasUnsavedChanges ? (
+                    <>
+                      <AlertCircle className="w-3 h-3 text-amber-500" />
+                      <span>Unsaved changes</span>
+                    </>
+                  ) : null}
+                </div>
+              )}
+
               {/* Status badge */}
               <div
                 className={cn(

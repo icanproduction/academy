@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Bot, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import { ChatMessage, AISuggestion, BriefSection } from "@/types/brief";
 import { AIMessage } from "./ai-message";
 import { cn } from "@/lib/utils";
+
+// localStorage key helper
+const getChatStorageKey = (contentId: string) => `ican_chat_${contentId}`;
 
 interface AIChatPanelProps {
   contentId: string;
@@ -30,6 +33,38 @@ export function AIChatPanel({
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const hasLoadedFromStorage = useRef(false);
+
+  // Load chat history from localStorage on mount (as fallback/merge)
+  useEffect(() => {
+    if (hasLoadedFromStorage.current) return;
+    hasLoadedFromStorage.current = true;
+
+    try {
+      const savedChat = localStorage.getItem(getChatStorageKey(contentId));
+      if (savedChat) {
+        const parsedMessages: ChatMessage[] = JSON.parse(savedChat);
+        // Only use localStorage if we have more messages than from API
+        // This handles the case where API returns empty but localStorage has data
+        if (parsedMessages.length > 0 && messages.length === 0) {
+          onMessagesChange(parsedMessages);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading chat from localStorage:", err);
+    }
+  }, [contentId, messages.length, onMessagesChange]);
+
+  // Save chat history to localStorage whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      try {
+        localStorage.setItem(getChatStorageKey(contentId), JSON.stringify(messages));
+      } catch (err) {
+        console.error("Error saving chat to localStorage:", err);
+      }
+    }
+  }, [messages, contentId]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -124,7 +159,7 @@ export function AIChatPanel({
   return (
     <div className="flex flex-col h-full bg-slate-50">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-200 bg-white flex items-center gap-2">
+      <div className="px-4 py-3 border-b border-slate-200 bg-white flex items-center gap-2 shrink-0">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
           <Bot className="w-4 h-4 text-white" />
         </div>
@@ -136,7 +171,7 @@ export function AIChatPanel({
 
       {/* Revision Alert */}
       {revisionFeedback && (
-        <div className="mx-4 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+        <div className="mx-4 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg shrink-0">
           <div className="flex items-start gap-2">
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div>
@@ -151,8 +186,8 @@ export function AIChatPanel({
         </div>
       )}
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Messages - Scrollable Container */}
+      <div className="chat-messages flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="text-center py-8">
             <Sparkles className="w-12 h-12 mx-auto text-violet-400 mb-3" />
