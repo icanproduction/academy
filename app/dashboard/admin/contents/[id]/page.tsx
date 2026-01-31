@@ -1,0 +1,535 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import {
+  ArrowLeft,
+  Film,
+  Images,
+  Smartphone,
+  Calendar,
+  Send,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  Save,
+  FileText,
+  Shield,
+  Building2,
+} from "lucide-react";
+import {
+  BriefSection,
+  ChatMessage,
+  AISuggestion,
+  AIAction,
+  generateId,
+} from "@/types/brief";
+
+// Tab components
+import { ContentTabs, ContentTabsMobile, ContentTabType } from "@/components/content/content-tabs";
+import { ContentDetailTab } from "@/components/content/content-detail-tab";
+import { BriefAITab } from "@/components/content/brief-ai-tab";
+import { DiscussionTab } from "@/components/content/discussion-tab";
+
+type ContentType = "reels" | "carousel" | "story";
+type ContentStatus =
+  | "idea_draft"
+  | "idea_submitted"
+  | "idea_revision"
+  | "production_ready"
+  | "production_in_progress"
+  | "production_submitted"
+  | "production_revision"
+  | "ready_to_post"
+  | "posted";
+
+interface Content {
+  id: string;
+  uniqueId: string;
+  title: string;
+  caption: string;
+  contentType: ContentType;
+  platforms: string[];
+  status: ContentStatus;
+  publishDate: string;
+  pillarId: string;
+  pillarName: string;
+  pillarEmoji: string;
+  pillarColor: string;
+  referenceLinks: string;
+  description?: string;
+  outputUrl: string;
+  clientId: string;
+  clientName?: string;
+}
+
+const STATUS_CONFIG: Record<
+  ContentStatus,
+  { label: string; color: string; bgColor: string; icon: any }
+> = {
+  idea_draft: {
+    label: "Draft Ide",
+    color: "text-slate-600",
+    bgColor: "bg-slate-100",
+    icon: FileText,
+  },
+  idea_submitted: {
+    label: "Menunggu Review",
+    color: "text-blue-600",
+    bgColor: "bg-blue-50",
+    icon: Send,
+  },
+  idea_revision: {
+    label: "Perlu Revisi",
+    color: "text-amber-600",
+    bgColor: "bg-amber-50",
+    icon: AlertCircle,
+  },
+  production_ready: {
+    label: "Siap Produksi",
+    color: "text-indigo-600",
+    bgColor: "bg-indigo-50",
+    icon: CheckCircle,
+  },
+  production_in_progress: {
+    label: "Dalam Produksi",
+    color: "text-purple-600",
+    bgColor: "bg-purple-50",
+    icon: Loader2,
+  },
+  production_submitted: {
+    label: "Review Hasil",
+    color: "text-blue-600",
+    bgColor: "bg-blue-50",
+    icon: Send,
+  },
+  production_revision: {
+    label: "Revisi Output",
+    color: "text-amber-600",
+    bgColor: "bg-amber-50",
+    icon: AlertCircle,
+  },
+  ready_to_post: {
+    label: "Siap Posting",
+    color: "text-emerald-600",
+    bgColor: "bg-emerald-50",
+    icon: CheckCircle,
+  },
+  posted: {
+    label: "Sudah Tayang",
+    color: "text-green-700",
+    bgColor: "bg-green-100",
+    icon: CheckCircle,
+  },
+};
+
+const TYPE_CONFIG: Record<
+  ContentType,
+  { label: string; icon: any; color: string }
+> = {
+  reels: { label: "Reels/Video", icon: Film, color: "from-pink-500 to-rose-500" },
+  carousel: {
+    label: "Carousel",
+    icon: Images,
+    color: "from-blue-500 to-indigo-500",
+  },
+  story: {
+    label: "Story",
+    icon: Smartphone,
+    color: "from-purple-500 to-violet-500",
+  },
+};
+
+export default function AdminContentDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const contentId = params.id as string;
+
+  const [content, setContent] = useState<Content | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Brief state
+  const [briefSections, setBriefSections] = useState<BriefSection[]>([]);
+  const [highlightedSectionId, setHighlightedSectionId] = useState<string | null>(null);
+
+  // AI Chat state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+
+  // Revision feedback
+  const [revisionFeedback, setRevisionFeedback] = useState<string | null>(null);
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<ContentTabType>("detail");
+
+  // Admin can always edit (but with caution)
+  const isEditable = true;
+
+  // Fetch content and brief
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch content
+        const contentRes = await fetch(`/api/contents/${contentId}`);
+        if (contentRes.ok) {
+          const data = await contentRes.json();
+          const contentData = data.data || data;
+          setContent(contentData);
+        }
+
+        // Fetch brief sections
+        const briefRes = await fetch(`/api/contents/${contentId}/brief`);
+        if (briefRes.ok) {
+          const data = await briefRes.json();
+          if (data.success && Array.isArray(data.sections)) {
+            setBriefSections(data.sections);
+          }
+        }
+
+        // Fetch chat history from API
+        const chatRes = await fetch(`/api/contents/${contentId}/chat?full=true`);
+        let apiMessages: ChatMessage[] = [];
+        if (chatRes.ok) {
+          const data = await chatRes.json();
+          if (data.success && data.data?.chatHistory) {
+            apiMessages = data.data.chatHistory.map(
+              (msg: any, idx: number) => ({
+                id: `msg-${idx}`,
+                role: msg.role,
+                content: msg.content,
+                timestamp: new Date().toISOString(),
+              })
+            );
+          }
+        }
+        setChatMessages(apiMessages);
+
+        // Fetch revision feedback
+        const reviewRes = await fetch(`/api/contents/${contentId}/reviews`);
+        if (reviewRes.ok) {
+          const data = await reviewRes.json();
+          const reviews = Array.isArray(data) ? data : data.data || [];
+          const latestRevision = reviews.find(
+            (r: any) => r.decision === "revision"
+          );
+          if (latestRevision) {
+            setRevisionFeedback(latestRevision.feedback);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [contentId]);
+
+  // Save brief sections
+  const saveBrief = useCallback(async () => {
+    if (!content) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/contents/${contentId}/brief`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sections: briefSections }),
+      });
+      if (!res.ok) throw new Error("Failed to save brief");
+    } catch (error) {
+      console.error("Error saving brief:", error);
+    } finally {
+      setSaving(false);
+    }
+  }, [content, contentId, briefSections]);
+
+  // Handle AI suggestion apply
+  const handleApplySuggestion = useCallback(
+    (suggestion: AISuggestion) => {
+      const newSections: BriefSection[] = suggestion.sections.map((s, idx) => ({
+        id: generateId(),
+        order: briefSections.length + idx + 1,
+        title: s.title,
+        duration: s.duration || 5,
+        fields: s.fields?.map((f) => ({
+          id: generateId(),
+          type: f.type,
+          label: f.label,
+          value: f.value,
+        })) || [],
+      }));
+
+      const updatedSections = [...briefSections, ...newSections];
+      setBriefSections(updatedSections);
+
+      if (newSections.length > 0) {
+        setHighlightedSectionId(newSections[0].id);
+        setTimeout(() => setHighlightedSectionId(null), 3000);
+      }
+    },
+    [briefSections]
+  );
+
+  // Apply AI actions
+  const applyAIActions = useCallback(
+    (actions: AIAction[]) => {
+      if (!actions) return;
+
+      let updatedSections = [...briefSections];
+
+      actions.forEach((action) => {
+        if (action.type === "create_section") {
+          const newSection: BriefSection = {
+            id: generateId(),
+            order: updatedSections.length + 1,
+            title: action.section_title,
+            duration: action.duration || 5,
+            fields:
+              action.fields?.map((f) => ({
+                id: generateId(),
+                type: f.type,
+                label: f.label,
+                value: f.value,
+              })) || [],
+          };
+          updatedSections.push(newSection);
+          setHighlightedSectionId(newSection.id);
+        } else if (action.type === "update_section" && action.section_id) {
+          updatedSections = updatedSections.map((s) => {
+            if (s.id === action.section_id) {
+              return {
+                ...s,
+                title: action.section_title || s.title,
+                duration: action.duration || s.duration,
+                fields:
+                  action.fields?.map((f) => ({
+                    id: generateId(),
+                    type: f.type,
+                    label: f.label,
+                    value: f.value,
+                  })) || s.fields,
+              };
+            }
+            return s;
+          });
+          setHighlightedSectionId(action.section_id);
+        } else if (action.type === "delete_section" && action.section_id) {
+          updatedSections = updatedSections.filter(
+            (s) => s.id !== action.section_id
+          );
+        }
+      });
+
+      setBriefSections(updatedSections);
+      setTimeout(() => setHighlightedSectionId(null), 3000);
+    },
+    [briefSections]
+  );
+
+  // Handle chat message changes
+  const handleMessagesChange = useCallback(
+    (messages: ChatMessage[]) => {
+      setChatMessages(messages);
+      const latestMessage = messages[messages.length - 1];
+      if (latestMessage?.role === "assistant" && latestMessage.actions) {
+        applyAIActions(latestMessage.actions);
+      }
+    },
+    [applyAIActions]
+  );
+
+  // Update content fields
+  const handleUpdateContent = useCallback(async (updates: Partial<Content>) => {
+    if (!content) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/contents/${contentId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (res.ok) {
+        setContent({ ...content, ...updates });
+      }
+    } catch (error) {
+      console.error("Error updating content:", error);
+      throw error;
+    } finally {
+      setSaving(false);
+    }
+  }, [content, contentId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (!content) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <p className="text-slate-500">Content not found</p>
+        <Link href="/dashboard/admin/review" className="text-blue-600 mt-2">
+          Kembali ke Review
+        </Link>
+      </div>
+    );
+  }
+
+  const statusConfig = STATUS_CONFIG[content.status];
+  const typeConfig = TYPE_CONFIG[content.contentType];
+  const StatusIcon = statusConfig.icon;
+  const TypeIcon = typeConfig.icon;
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
+        <div className="px-4 py-3">
+          {/* Back button and admin badge */}
+          <div className="flex items-center gap-3 mb-2">
+            <Link
+              href="/dashboard/admin/review"
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-slate-600" />
+            </Link>
+            <span className="text-sm font-mono text-slate-500">
+              {content.uniqueId}
+            </span>
+            <div className="flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium">
+              <Shield className="w-3 h-3" />
+              Admin View
+            </div>
+          </div>
+
+          {/* Title and metadata */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-bold text-slate-800">
+                {content.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-slate-500">
+                {content.clientName && (
+                  <>
+                    <span className="flex items-center gap-1">
+                      <Building2 className="w-4 h-4" />
+                      {content.clientName}
+                    </span>
+                    <span>•</span>
+                  </>
+                )}
+                {content.pillarEmoji && (
+                  <span>
+                    {content.pillarEmoji} {content.pillarName}
+                  </span>
+                )}
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <TypeIcon className="w-4 h-4" />
+                  {typeConfig.label}
+                </span>
+                <span>•</span>
+                <span>{content.platforms?.join(", ")}</span>
+                {content.publishDate && (
+                  <>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      {new Date(content.publishDate).toLocaleDateString("id-ID")}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Save indicator */}
+              {saving && (
+                <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Saving...</span>
+                </div>
+              )}
+
+              {/* Status badge */}
+              <div
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium",
+                  statusConfig.bgColor,
+                  statusConfig.color
+                )}
+              >
+                <StatusIcon className="w-4 h-4" />
+                {statusConfig.label}
+              </div>
+
+              {/* Manual save button */}
+              <button
+                onClick={saveBrief}
+                disabled={saving}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                Save Brief
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop tabs */}
+        <ContentTabs activeTab={activeTab} onTabChange={setActiveTab} />
+
+        {/* Mobile tabs */}
+        <ContentTabsMobile activeTab={activeTab} onTabChange={setActiveTab} />
+      </header>
+
+      {/* Tab Content */}
+      <div className="flex-1 overflow-hidden bg-slate-50">
+        {/* Tab 1: Content Detail */}
+        {activeTab === "detail" && content && (
+          <div className="h-full overflow-y-auto">
+            <ContentDetailTab
+              content={content}
+              isEditable={isEditable}
+              onUpdate={handleUpdateContent}
+            />
+          </div>
+        )}
+
+        {/* Tab 2: Brief & AI Assistant */}
+        {activeTab === "brief" && (
+          <BriefAITab
+            contentId={contentId}
+            briefSections={briefSections}
+            chatMessages={chatMessages}
+            isEditable={isEditable}
+            isSaving={saving}
+            highlightedSectionId={highlightedSectionId}
+            revisionFeedback={revisionFeedback}
+            onSectionsChange={setBriefSections}
+            onMessagesChange={handleMessagesChange}
+            onSave={saveBrief}
+            onApplySuggestion={handleApplySuggestion}
+          />
+        )}
+
+        {/* Tab 3: Discussion & Review */}
+        {activeTab === "discussion" && (
+          <div className="h-full overflow-y-auto">
+            <DiscussionTab
+              contentId={contentId}
+              revisionFeedback={revisionFeedback}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
