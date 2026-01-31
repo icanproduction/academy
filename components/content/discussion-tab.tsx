@@ -210,7 +210,13 @@ export function DiscussionTab({ contentId, revisionFeedback }: DiscussionTabProp
             <textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Tulis komentar atau feedback..."
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              placeholder="Tulis komentar atau feedback... (Enter untuk kirim)"
               rows={2}
               className="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             />

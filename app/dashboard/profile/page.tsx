@@ -49,15 +49,31 @@ export default function ProfilePage() {
       try {
         setLoading(true);
         const stored = localStorage.getItem("ican_session");
-        if (!stored) return;
+        if (!stored) {
+          console.error("No session found");
+          setLoading(false);
+          return;
+        }
 
         const session = JSON.parse(stored);
+        if (!session.clientId) {
+          console.error("No clientId in session");
+          setLoading(false);
+          return;
+        }
+
         const res = await fetch(`/api/clients/${session.clientId}`);
         if (res.ok) {
           const data = await res.json();
-          setProfile(data);
-          setContactPerson(data.contactPerson || "");
-          setPhone(data.phone || "");
+          // Handle both direct response and wrapped response
+          const profileData = data.success === false ? null : (data.data || data);
+          if (profileData && !data.error) {
+            setProfile(profileData);
+            setContactPerson(profileData.contactPerson || "");
+            setPhone(profileData.phone || "");
+          }
+        } else {
+          console.error("Failed to fetch profile:", res.status);
         }
       } catch (error) {
         console.error("Error fetching profile:", error);

@@ -16,6 +16,7 @@ import {
   Calendar,
   ArrowRight,
   Target,
+  FolderOpen,
 } from "lucide-react";
 
 interface DashboardData {
@@ -204,20 +205,20 @@ export default function DashboardPage() {
           </Link>
 
           <Link
-            href="/dashboard/brand"
+            href="/dashboard/assets"
             className="group glass-card rounded-2xl p-6 card-hover animate-fade-in relative overflow-hidden"
             style={{ animationDelay: "500ms" }}
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-full blur-2xl transform translate-x-10 -translate-y-10" />
             <div className="relative">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mb-4 shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-300">
-                <Sparkles className="w-6 h-6 text-white" />
+                <FolderOpen className="w-6 h-6 text-white" />
               </div>
               <p className="font-semibold text-slate-800 group-hover:text-amber-600 transition-colors flex items-center gap-2">
-                Brand & Assets
+                Brand Assets
                 <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
               </p>
-              <p className="text-sm text-slate-500 mt-1">Lihat brand guide & assets</p>
+              <p className="text-sm text-slate-500 mt-1">Kelola link assets kamu</p>
             </div>
           </Link>
 

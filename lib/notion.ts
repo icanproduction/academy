@@ -4,8 +4,9 @@ const notion = new Client({
   auth: process.env.NOTION_API_KEY?.trim(),
 });
 
-// Helper to safely get and trim env var
-const getDbId = (envVar: string | undefined): string => (envVar || "").trim();
+// Helper to safely get and trim env var (also removes literal \n characters)
+const getDbId = (envVar: string | undefined): string =>
+  (envVar || "").replace(/\\n/g, "").trim();
 
 const DB = {
   clients: getDbId(process.env.NOTION_CLIENTS_DB_ID),

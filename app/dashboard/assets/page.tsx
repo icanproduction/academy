@@ -54,8 +54,16 @@ export default function AssetsPage() {
     // Get client ID from session
     const session = localStorage.getItem("ican_session");
     if (session) {
-      const parsed = JSON.parse(session);
-      setClientId(parsed.clientId);
+      try {
+        const parsed = JSON.parse(session);
+        setClientId(parsed.clientId);
+      } catch (e) {
+        console.error("Error parsing session:", e);
+        setLoading(false);
+      }
+    } else {
+      // No session, stop loading
+      setLoading(false);
     }
   }, []);
 

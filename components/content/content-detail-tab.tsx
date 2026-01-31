@@ -303,6 +303,25 @@ export function ContentDetailTab({ content, isEditable, onUpdate }: ContentDetai
           />
         </div>
 
+        {/* Deskripsi Konten */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Deskripsi Konten
+          </label>
+          <textarea
+            value={localContent.description || ""}
+            onChange={(e) => handleFieldChange("description", e.target.value)}
+            disabled={!isEditable}
+            rows={3}
+            placeholder="Deskripsi singkat tentang konten ini..."
+            className={cn(
+              "w-full px-4 py-3 rounded-lg border border-slate-200 text-sm resize-none",
+              "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
+              !isEditable && "bg-slate-50 cursor-not-allowed"
+            )}
+          />
+        </div>
+
         {/* Caption */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">

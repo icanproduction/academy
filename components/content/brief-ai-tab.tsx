@@ -67,41 +67,45 @@ export function BriefAITab({
         </button>
       </div>
 
-      {/* Main content - Split view on desktop */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* Brief Editor Panel */}
+      {/* Main content - Split view on desktop with independent scrolling */}
+      <div className="flex-1 flex flex-col md:flex-row min-h-0">
+        {/* Brief Editor Panel - Independent scroll */}
         <div
           className={cn(
-            "flex-1 md:w-[55%] md:max-w-[55%] border-r border-slate-200 bg-white overflow-hidden",
-            mobileSubTab !== "brief" && "hidden md:block"
+            "flex-1 md:w-[55%] md:max-w-[55%] border-r border-slate-200 bg-white flex flex-col min-h-0",
+            mobileSubTab !== "brief" && "hidden md:flex"
           )}
         >
-          <BriefEditor
-            sections={briefSections}
-            isEditable={isEditable}
-            onSectionsChange={onSectionsChange}
-            onSave={onSave}
-            isSaving={isSaving}
-            highlightedSectionId={highlightedSectionId}
-          />
+          <div className="flex-1 overflow-y-auto">
+            <BriefEditor
+              sections={briefSections}
+              isEditable={isEditable}
+              onSectionsChange={onSectionsChange}
+              onSave={onSave}
+              isSaving={isSaving}
+              highlightedSectionId={highlightedSectionId}
+            />
+          </div>
         </div>
 
-        {/* AI Chat Panel */}
+        {/* AI Chat Panel - Independent scroll */}
         <div
           className={cn(
-            "flex-1 md:w-[45%] md:max-w-[45%] overflow-hidden",
-            mobileSubTab !== "ai" && "hidden md:block"
+            "flex-1 md:w-[45%] md:max-w-[45%] flex flex-col min-h-0",
+            mobileSubTab !== "ai" && "hidden md:flex"
           )}
         >
-          <AIChatPanel
-            contentId={contentId}
-            messages={chatMessages}
-            onMessagesChange={onMessagesChange}
-            isEditable={isEditable}
-            onApplySuggestion={onApplySuggestion}
-            revisionFeedback={revisionFeedback}
-            briefSections={briefSections}
-          />
+          <div className="flex-1 overflow-hidden">
+            <AIChatPanel
+              contentId={contentId}
+              messages={chatMessages}
+              onMessagesChange={onMessagesChange}
+              isEditable={isEditable}
+              onApplySuggestion={onApplySuggestion}
+              revisionFeedback={revisionFeedback}
+              briefSections={briefSections}
+            />
+          </div>
         </div>
       </div>
     </div>

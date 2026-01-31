@@ -54,7 +54,7 @@ export function AIMessage({
                 suggestion={suggestion}
                 index={idx}
                 isEditable={isEditable}
-                onApply={() => onApplySuggestion(suggestion)}
+                onApply={(filteredSuggestion) => onApplySuggestion(filteredSuggestion)}
               />
             ))}
           </div>
