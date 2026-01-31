@@ -40,6 +40,7 @@ export function BriefSection({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingDuration, setIsEditingDuration] = useState(false);
   const [showAddField, setShowAddField] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const updateField = (fieldId: string, value: string) => {
     onUpdate({
@@ -84,9 +85,15 @@ export function BriefSection({
   return (
     <div
       className={cn(
-        "bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-300",
+        "bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-300 group",
         isHighlighted && "ring-2 ring-blue-400 shadow-blue-100"
       )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        // Only close add field dropdown if not actively using it
+        if (!showAddField) setShowAddField(false);
+      }}
     >
       {/* Section Header */}
       <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
@@ -199,12 +206,18 @@ export function BriefSection({
             ))
           )}
 
-          {/* Add Field Button */}
+          {/* Add Field Button - visible on hover or when dropdown is open */}
           {isEditable && (
-            <div className="relative pt-2">
+            <div
+              className={cn(
+                "relative pt-2 transition-all duration-200",
+                !isHovered && !showAddField && "opacity-0 h-0 overflow-hidden pt-0",
+                (isHovered || showAddField) && "opacity-100"
+              )}
+            >
               <button
                 onClick={() => setShowAddField(!showAddField)}
-                className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors border border-dashed border-slate-300 hover:border-blue-400 w-full justify-center"
               >
                 <Plus className="w-4 h-4" />
                 Add Field

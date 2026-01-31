@@ -15,11 +15,8 @@ import {
   AlertCircle,
   Loader2,
   Save,
-  MessageSquare,
   FileText,
 } from "lucide-react";
-import { BriefEditor } from "@/components/brief/brief-editor";
-import { AIChatPanel } from "@/components/ai/ai-chat-panel";
 import {
   BriefSection,
   ChatMessage,
@@ -29,6 +26,12 @@ import {
   createField,
 } from "@/types/brief";
 import { useAutoSave } from "@/hooks/use-auto-save";
+
+// Tab components
+import { ContentTabs, ContentTabsMobile, ContentTabType } from "@/components/content/content-tabs";
+import { ContentDetailTab } from "@/components/content/content-detail-tab";
+import { BriefAITab } from "@/components/content/brief-ai-tab";
+import { DiscussionTab } from "@/components/content/discussion-tab";
 
 type ContentType = "reels" | "carousel" | "story";
 type ContentStatus =
@@ -154,15 +157,11 @@ export default function ContentDetailPage() {
   // AI Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
-  // Caption state
-  const [caption, setCaption] = useState("");
-  const [editingCaption, setEditingCaption] = useState(false);
-
   // Revision feedback
   const [revisionFeedback, setRevisionFeedback] = useState<string | null>(null);
 
-  // Mobile tab (for responsive)
-  const [mobileTab, setMobileTab] = useState<"brief" | "ai">("brief");
+  // Tab state (new tab system)
+  const [activeTab, setActiveTab] = useState<ContentTabType>("brief");
 
   // Determine if brief is editable based on status
   const isEditable =
@@ -182,7 +181,6 @@ export default function ContentDetailPage() {
           const data = await contentRes.json();
           const contentData = data.data || data;
           setContent(contentData);
-          setCaption(contentData.caption || "");
         }
 
         // Fetch brief sections
@@ -414,26 +412,26 @@ export default function ContentDetailPage() {
     }
   };
 
-  // Save caption
-  const handleSaveCaption = async () => {
+  // Update content fields
+  const handleUpdateContent = useCallback(async (updates: Partial<Content>) => {
     if (!content) return;
     setSaving(true);
     try {
       const res = await fetch(`/api/contents/${contentId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ caption }),
+        body: JSON.stringify(updates),
       });
       if (res.ok) {
-        setContent({ ...content, caption });
-        setEditingCaption(false);
+        setContent({ ...content, ...updates });
       }
     } catch (error) {
-      console.error("Error saving caption:", error);
+      console.error("Error updating content:", error);
+      throw error;
     } finally {
       setSaving(false);
     }
-  };
+  }, [content, contentId]);
 
   if (loading) {
     return (
@@ -557,127 +555,52 @@ export default function ContentDetailPage() {
           </div>
         </div>
 
+        {/* Desktop tabs */}
+        <ContentTabs activeTab={activeTab} onTabChange={setActiveTab} />
+
         {/* Mobile tabs */}
-        <div className="flex md:hidden border-t border-slate-200">
-          <button
-            onClick={() => setMobileTab("brief")}
-            className={cn(
-              "flex-1 py-3 text-sm font-medium text-center transition-colors",
-              mobileTab === "brief"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-slate-500"
-            )}
-          >
-            <FileText className="w-4 h-4 inline mr-1.5" />
-            Brief
-          </button>
-          <button
-            onClick={() => setMobileTab("ai")}
-            className={cn(
-              "flex-1 py-3 text-sm font-medium text-center transition-colors",
-              mobileTab === "ai"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-slate-500"
-            )}
-          >
-            <MessageSquare className="w-4 h-4 inline mr-1.5" />
-            AI Chat
-          </button>
-        </div>
+        <ContentTabsMobile activeTab={activeTab} onTabChange={setActiveTab} />
       </header>
 
-      {/* Main content - Brief Editor (left) + AI Chat (right) */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* Brief Editor Panel */}
-        <div
-          className={cn(
-            "flex-1 md:w-[55%] md:max-w-[55%] border-r border-slate-200 bg-white overflow-hidden",
-            mobileTab !== "brief" && "hidden md:block"
-          )}
-        >
-          <BriefEditor
-            sections={briefSections}
+      {/* Tab Content */}
+      <div className="flex-1 overflow-hidden bg-slate-50">
+        {/* Tab 1: Content Detail */}
+        {activeTab === "detail" && content && (
+          <div className="h-full overflow-y-auto">
+            <ContentDetailTab
+              content={content}
+              isEditable={isEditable}
+              onUpdate={handleUpdateContent}
+            />
+          </div>
+        )}
+
+        {/* Tab 2: Brief & AI Assistant */}
+        {activeTab === "brief" && (
+          <BriefAITab
+            contentId={contentId}
+            briefSections={briefSections}
+            chatMessages={chatMessages}
             isEditable={isEditable}
-            onSectionsChange={setBriefSections}
-            onSave={saveBrief}
             isSaving={saving}
             highlightedSectionId={highlightedSectionId}
-          />
-        </div>
-
-        {/* AI Chat Panel */}
-        <div
-          className={cn(
-            "flex-1 md:w-[45%] md:max-w-[45%] overflow-hidden",
-            mobileTab !== "ai" && "hidden md:block"
-          )}
-        >
-          <AIChatPanel
-            contentId={contentId}
-            messages={chatMessages}
-            onMessagesChange={handleMessagesChange}
-            isEditable={isEditable}
-            onApplySuggestion={handleApplySuggestion}
             revisionFeedback={revisionFeedback}
-            briefSections={briefSections}
+            onSectionsChange={setBriefSections}
+            onMessagesChange={handleMessagesChange}
+            onSave={saveBrief}
+            onApplySuggestion={handleApplySuggestion}
           />
-        </div>
-      </div>
+        )}
 
-      {/* Caption Section (bottom) */}
-      <div className="border-t border-slate-200 bg-white px-4 py-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-medium text-slate-700">Caption</h3>
-            {isEditable && !editingCaption && (
-              <button
-                onClick={() => setEditingCaption(true)}
-                className="text-sm text-blue-600 hover:text-blue-700"
-              >
-                Edit
-              </button>
-            )}
+        {/* Tab 3: Discussion & Review */}
+        {activeTab === "discussion" && (
+          <div className="h-full overflow-y-auto">
+            <DiscussionTab
+              contentId={contentId}
+              revisionFeedback={revisionFeedback}
+            />
           </div>
-
-          {editingCaption ? (
-            <div className="space-y-2">
-              <textarea
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                rows={4}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Write your caption here..."
-              />
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => {
-                    setCaption(content.caption || "");
-                    setEditingCaption(false);
-                  }}
-                  className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveCaption}
-                  disabled={saving}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {saving ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4" />
-                  )}
-                  Save
-                </button>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-slate-600 whitespace-pre-wrap">
-              {caption || "(No caption yet)"}
-            </p>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );

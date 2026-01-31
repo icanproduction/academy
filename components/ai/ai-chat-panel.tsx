@@ -149,11 +149,38 @@ export function AIChatPanel({
     }
   };
 
-  // Quick action prompts
+  // Quick action prompts - expanded options
   const quickActions = [
-    { label: "Generate Hook", prompt: "Buatkan 3 opsi hook yang menarik untuk konten ini" },
-    { label: "Buat Struktur", prompt: "Buatkan struktur detail konten ini (scene by scene)" },
-    { label: "Draft Caption", prompt: "Buatkan draft caption yang engaging" },
+    {
+      label: "🎬 Generate Hook",
+      prompt: "Buatkan 3 opsi hook yang menarik untuk konten ini. Berikan variasi antara problem hook, curiosity hook, dan benefit hook.",
+      category: "content"
+    },
+    {
+      label: "📋 Buat Struktur",
+      prompt: "Buatkan struktur detail konten ini scene by scene. Mulai dari hook, body content, sampai CTA.",
+      category: "content"
+    },
+    {
+      label: "✍️ Draft Caption",
+      prompt: "Buatkan draft caption yang engaging untuk konten ini. Include relevant hashtags.",
+      category: "content"
+    },
+    {
+      label: "🎯 Improve CTA",
+      prompt: "Berikan 3 opsi CTA yang lebih kuat untuk konten ini. Fokus ke action yang clear.",
+      category: "enhance"
+    },
+    {
+      label: "🔍 Review Brief",
+      prompt: "Tolong review brief saat ini. Apa yang masih kurang atau perlu diperbaiki?",
+      category: "review"
+    },
+    {
+      label: "💡 Ide Konten",
+      prompt: "Kasih beberapa ide angle atau twist yang bisa membuat konten ini lebih menarik.",
+      category: "idea"
+    },
   ];
 
   return (
@@ -198,13 +225,13 @@ export function AIChatPanel({
               Tanyakan apapun tentang brief konten kamu
             </p>
 
-            {/* Quick Actions */}
-            <div className="flex flex-wrap gap-2 justify-center">
+            {/* Quick Actions - Grid Layout */}
+            <div className="grid grid-cols-2 gap-2 max-w-sm mx-auto">
               {quickActions.map((action) => (
                 <button
                   key={action.label}
                   onClick={() => setInput(action.prompt)}
-                  className="text-xs px-3 py-1.5 bg-white border border-slate-200 rounded-full text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                  className="text-xs px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-all text-left"
                 >
                   {action.label}
                 </button>
