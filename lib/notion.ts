@@ -926,16 +926,22 @@ export async function getContentComments(contentId: string): Promise<ContentComm
   }
 }
 
-export async function createContentComment(contentId: string, authorId: string, authorName: string, message: string): Promise<string> {
+export async function createContentComment(contentId: string, authorId: string | null, authorName: string, message: string): Promise<string> {
+  const properties: any = {
+    Name: { title: [{ text: { content: message.substring(0, 50) + (message.length > 50 ? "..." : "") } }] },
+    Content: { relation: [{ id: contentId }] },
+    "Author Name": { rich_text: [{ text: { content: authorName } }] },
+    Message: { rich_text: [{ text: { content: message } }] },
+  };
+
+  // Only add Author relation if it's a valid Notion page ID (not "anonymous" or empty)
+  if (authorId && authorId !== "anonymous" && authorId.length > 10) {
+    properties.Author = { relation: [{ id: authorId }] };
+  }
+
   const page = await notion.pages.create({
     parent: { database_id: DB.contentComments },
-    properties: {
-      Name: { title: [{ text: { content: message.substring(0, 50) + "..." } }] },
-      Content: { relation: [{ id: contentId }] },
-      Author: { relation: [{ id: authorId }] },
-      "Author Name": { rich_text: [{ text: { content: authorName } }] },
-      Message: { rich_text: [{ text: { content: message } }] },
-    },
+    properties,
   });
   return page.id;
 }

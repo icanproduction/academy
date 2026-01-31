@@ -126,9 +126,14 @@ export async function POST(
       content: "Understood, I can see the current brief.",
     });
 
-    // Add conversation history
-    if (Array.isArray(conversationHistory)) {
-      conversationHistory.forEach(
+    // Add conversation history with windowing (keep last 8 messages for context efficiency)
+    if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+      const maxMessages = 8;
+      const windowedHistory = conversationHistory.length > maxMessages
+        ? conversationHistory.slice(-maxMessages)
+        : conversationHistory;
+
+      windowedHistory.forEach(
         (msg: { role: "user" | "assistant"; content: string }) => {
           messages.push({
             role: msg.role,
@@ -194,21 +199,41 @@ ${revisionFeedback ? `
 Bantu address revision points ini secara spesifik.
 ` : ""}
 
+RESPONSE EFFICIENCY RULES (CRITICAL):
+1. DETECT INTENT FIRST:
+   - Opinion/Question (menurutmu, gimana, kenapa, apa) -> Jawab singkat 2-3 kalimat MAX, TANPA structured format
+   - Generate request (buatkan, generate, buat, kasih) -> Kasih options dengan preview singkat
+   - Approval (oke, ok, pakai, setuju, gas, lanjut) -> Respond minimal + execute action
+
+2. PROGRESSIVE DISCLOSURE:
+   - Jangan langsung kasih semua detail
+   - Kasih preview/summary dulu (1 line per option MAX)
+   - Expand detail hanya jika diminta
+
+3. SCENE/VISUAL INCLUSION - VERY IMPORTANT:
+   - HANYA include scene_description jika user EXPLICITLY minta "scene", "visual", "tampilan", "breakdown"
+   - Untuk request "buatkan hook" / "buatkan script" -> HANYA kasih Script field, TANPA scene_description
+   - Default: TANPA scene_description kecuali diminta
+
+4. RESPONSE LENGTH:
+   - Conversational response: Max 2-3 kalimat
+   - Preview/Options: Max 1 line per option di preview
+   - Full generation: Sesuai kebutuhan tapi EFISIEN
+
 CONVERSATION STYLE:
 1. CONVERSATIONAL & DUA ARAH
    - Jangan langsung generate konten panjang
-   - Tanya clarifying questions: "Mau fokus ke benefit apa?", "Tone-nya mau fun atau professional?"
+   - Tanya clarifying questions jika perlu
    - Pahami dulu intent user sebelum suggest
 
 2. IDENTIFIKASI "TITIK KOSONG"
    - Lihat brief saat ini, apa yang masih kurang?
-   - Proaktif tanya: "Hook nya belum ada nih, mau mulai dari situ?"
-   - Suggest prioritas: "Biasanya mulai dari hook dulu, terus body, baru CTA. Gimana?"
+   - Proaktif suggest prioritas jika brief kosong
 
 3. SUGGEST DULU, APPLY KEMUDIAN
    - JANGAN langsung pakai "actions" untuk modify brief
    - Kasih opsi/preview dulu dalam "suggestions"
-   - Tunggu user bilang "ok", "pakai", "apply" baru execute
+   - Tunggu user approve dengan kata: "ok", "pakai", "apply", "setuju", "gas"
 
 4. NATURAL PRODUCT REFERENCE
    - Integrasikan produk/service brand secara natural
@@ -223,7 +248,7 @@ RESPONSE FORMAT (JSON only):
 
 SUGGESTIONS FORMAT (ketika kasih opsi):
 {
-  "message": "Aku ada ${content.contentType === 'reels' ? '3' : '2'} opsi hook nih, pilih yang paling cocok:",
+  "message": "Ini ${content.contentType === 'reels' ? '3' : '2'} opsi hook, pilih yang cocok:",
   "suggestions": [
     {
       "label": "Opsi 1: Problem Hook",
@@ -233,8 +258,7 @@ SUGGESTIONS FORMAT (ketika kasih opsi):
           "title": "Hook",
           "duration": 3,
           "fields": [
-            {"type": "script", "label": "Script", "value": "..."},
-            {"type": "scene_description", "label": "Visual", "value": "..."}
+            {"type": "script", "label": "Script", "value": "Script text here..."}
           ]
         }
       ]
@@ -242,6 +266,8 @@ SUGGESTIONS FORMAT (ketika kasih opsi):
   ],
   "actions": null
 }
+
+NOTE: scene_description field HANYA ditambahkan jika user explicitly minta visual/scene!
 
 ACTIONS FORMAT (HANYA jika user approve dengan kata: "ok", "pakai", "apply", "setuju", "gas"):
 {

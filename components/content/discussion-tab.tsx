@@ -39,6 +39,22 @@ export function DiscussionTab({ contentId, revisionFeedback }: DiscussionTabProp
   const [newRevisionPoint, setNewRevisionPoint] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [userName, setUserName] = useState("You");
+  const [userClientId, setUserClientId] = useState<string | null>(null);
+
+  // Get user info from session
+  useEffect(() => {
+    const session = localStorage.getItem("ican_session");
+    if (session) {
+      try {
+        const parsed = JSON.parse(session);
+        setUserName(parsed.name || "You");
+        setUserClientId(parsed.clientId || null);
+      } catch (e) {
+        console.error("Error parsing session:", e);
+      }
+    }
+  }, []);
 
   // Fetch discussions and revision points
   useEffect(() => {
@@ -82,26 +98,33 @@ export function DiscussionTab({ contentId, revisionFeedback }: DiscussionTabProp
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: newMessage,
+          authorId: userClientId,
+          authorName: userName,
           type: "comment",
         }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
+      const data = await res.json();
+
+      if (res.ok && data.success) {
         setDiscussions([
           ...discussions,
           {
             id: data.id || `msg-${Date.now()}`,
-            authorName: "You",
+            authorName: userName,
             message: newMessage,
             type: "comment",
             createdAt: new Date().toISOString(),
           },
         ]);
         setNewMessage("");
+      } else {
+        console.error("Failed to send message:", data.error);
+        alert("Gagal mengirim komentar: " + (data.error || "Unknown error"));
       }
     } catch (error) {
       console.error("Error sending message:", error);
+      alert("Gagal mengirim komentar");
     } finally {
       setSending(false);
     }
