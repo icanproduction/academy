@@ -185,8 +185,8 @@ export default function ContentDetailPage() {
           setTempPublishDate(contentData.publishDate || "");
         }
 
-        // Fetch AI chat data
-        const aiRes = await fetch(`/api/contents/${contentId}/chat`);
+        // Fetch AI chat data (full history from database)
+        const aiRes = await fetch(`/api/contents/${contentId}/chat?full=true`);
         if (aiRes.ok) {
           const data = await aiRes.json();
           if (data.success && data.data) {
