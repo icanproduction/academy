@@ -90,7 +90,9 @@ export default function ClientPillarsPage() {
         const pillarsRes = await fetch(`/api/pillars?clientId=${clientId}`);
         if (pillarsRes.ok) {
           const pillarsData = await pillarsRes.json();
-          setPillars(Array.isArray(pillarsData) ? pillarsData : []);
+          // API returns { success, data: [...] }
+          const pillarsArray = pillarsData.data || pillarsData;
+          setPillars(Array.isArray(pillarsArray) ? pillarsArray : []);
         }
       } catch (error) {
         console.error("Error fetching data:", error);

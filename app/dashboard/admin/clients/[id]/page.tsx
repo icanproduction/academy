@@ -127,7 +127,7 @@ interface ClientContent {
   createdAt: string;
 }
 
-type TabId = "overview" | "products" | "pillars" | "assets" | "briefs" | "contents";
+type TabId = "overview" | "contents" | "products" | "pillars" | "assets" | "briefs";
 
 const phaseColor: Record<string, string> = {
   Systematize: "from-blue-500 to-indigo-600",
@@ -239,7 +239,9 @@ export default function AdminClientDetailPage() {
             const pillarRes = await fetch(`/api/pillars?clientId=${clientId}`);
             if (pillarRes.ok) {
               const data = await pillarRes.json();
-              setPillars(Array.isArray(data) ? data : []);
+              // API returns { success, data: [...] }
+              const pillarsData = data.data || data;
+              setPillars(Array.isArray(pillarsData) ? pillarsData : []);
             }
             break;
 
@@ -266,16 +268,19 @@ export default function AdminClientDetailPage() {
             ]);
             if (contentsRes.ok) {
               const data = await contentsRes.json();
-              const contentsData = Array.isArray(data) ? data : (data.contents || []);
+              const contentsData = Array.isArray(data) ? data : (data.contents || data.data || []);
 
               // Get pillars to map names
               let pillarsMap: Record<string, { name: string; emoji: string }> = {};
               if (pillarsForContents.ok) {
                 const pillarsData = await pillarsForContents.json();
-                const pillarsArray = Array.isArray(pillarsData) ? pillarsData : [];
-                pillarsArray.forEach((p: any) => {
-                  pillarsMap[p.id] = { name: p.name, emoji: p.emoji };
-                });
+                // API returns { success, data: [...] }
+                const pillarsArray = pillarsData.data || pillarsData;
+                if (Array.isArray(pillarsArray)) {
+                  pillarsArray.forEach((p: any) => {
+                    pillarsMap[p.id] = { name: p.name, emoji: p.emoji };
+                  });
+                }
               }
 
               // Enrich contents with pillar names
@@ -406,7 +411,6 @@ export default function AdminClientDetailPage() {
     { id: "products" as const, label: "Products", icon: Package },
     { id: "pillars" as const, label: "Pillars", icon: Target },
     { id: "assets" as const, label: "Assets", icon: FolderOpen },
-    { id: "briefs" as const, label: "Briefs", icon: Sparkles },
   ];
 
   return (
@@ -696,9 +700,9 @@ export default function AdminClientDetailPage() {
               </div>
             </div>
 
-            {/* Quick Action: Request Brief */}
+            {/* Quick Action: Create Content for Client */}
             <Link
-              href={`/dashboard/admin/clients/${clientId}/brief/new`}
+              href={`/dashboard/admin/clients/${clientId}/content/new`}
               className="block glass-card rounded-2xl p-6 hover:shadow-lg hover:border-accent/30 transition-all group"
             >
               <div className="flex items-center justify-between">
@@ -707,8 +711,8 @@ export default function AdminClientDetailPage() {
                     <Sparkles className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <p className="font-semibold">Request Reels Brief</p>
-                    <p className="text-sm text-slate-500">Generate brief dengan AI</p>
+                    <p className="font-semibold">Buat Konten untuk Client</p>
+                    <p className="text-sm text-slate-500">Buat konten baru dengan AI Assistant</p>
                   </div>
                 </div>
                 <ArrowLeft className="w-5 h-5 text-slate-400 rotate-180 group-hover:translate-x-1 transition-transform" />
@@ -1007,26 +1011,26 @@ export default function AdminClientDetailPage() {
           </div>
         )}
 
-        {/* BRIEFS TAB */}
+        {/* BRIEFS TAB - Now shows AI-generated briefs from Contents */}
         {activeTab === "briefs" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold">Reels Briefs ({briefs.length})</h2>
+              <h2 className="font-bold">Konten dengan Brief AI ({contents.filter(c => c.status !== "idea_draft").length})</h2>
               <Link
-                href={`/dashboard/admin/clients/${clientId}/brief/new`}
+                href={`/dashboard/admin/clients/${clientId}/content/new`}
                 className="bg-accent hover:bg-accent-hover text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
-                Generate Brief
+                Buat Konten Baru
               </Link>
             </div>
 
-            {briefs.length > 0 ? (
+            {contents.filter(c => c.status !== "idea_draft").length > 0 ? (
               <div className="space-y-3">
-                {briefs.map((brief) => (
+                {contents.filter(c => c.status !== "idea_draft").map((content) => (
                   <Link
-                    key={brief.id}
-                    href={`/dashboard/admin/clients/${clientId}/brief/${brief.id}`}
+                    key={content.id}
+                    href={`/dashboard/contents/${content.id}`}
                     className="glass-card rounded-xl p-4 flex items-center justify-between hover:shadow-md hover:border-accent/30 transition-all"
                   >
                     <div className="flex items-center gap-4">
@@ -1034,21 +1038,22 @@ export default function AdminClientDetailPage() {
                         <FileText className="w-5 h-5 text-accent" />
                       </div>
                       <div>
-                        <p className="font-medium">{brief.requestId}</p>
-                        <p className="text-sm text-slate-500">{brief.topic}</p>
+                        <p className="font-medium">{content.title}</p>
+                        <p className="text-sm text-slate-500">{content.pillarEmoji} {content.pillarName}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className={cn(
                         "px-2 py-1 rounded text-xs font-medium",
-                        brief.status === "Approved" ? "bg-green-50 text-green-700" :
-                        brief.status === "Generated" ? "bg-blue-50 text-blue-700" :
+                        content.status === "posted" ? "bg-green-50 text-green-700" :
+                        content.status === "approved" ? "bg-blue-50 text-blue-700" :
+                        content.status === "idea_submitted" ? "bg-amber-50 text-amber-700" :
                         "bg-slate-100 text-slate-600"
                       )}>
-                        {brief.status}
+                        {content.status}
                       </span>
                       <span className="text-xs text-slate-400">
-                        {new Date(brief.createdAt).toLocaleDateString("id-ID")}
+                        {new Date(content.createdAt).toLocaleDateString("id-ID")}
                       </span>
                     </div>
                   </Link>
@@ -1057,14 +1062,14 @@ export default function AdminClientDetailPage() {
             ) : (
               <div className="glass-card rounded-2xl p-12 text-center">
                 <Sparkles className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <h3 className="font-semibold mb-2">Belum ada brief</h3>
-                <p className="text-sm text-slate-500 mb-4">Generate Reels brief dengan AI untuk client ini</p>
+                <h3 className="font-semibold mb-2">Belum ada konten dengan brief</h3>
+                <p className="text-sm text-slate-500 mb-4">Buat konten baru dengan AI untuk client ini</p>
                 <Link
-                  href={`/dashboard/admin/clients/${clientId}/brief/new`}
+                  href={`/dashboard/admin/clients/${clientId}/content/new`}
                   className="bg-accent hover:bg-accent-hover text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2"
                 >
                   <Sparkles className="w-4 h-4" />
-                  Generate Brief
+                  Buat Konten Baru
                 </Link>
               </div>
             )}

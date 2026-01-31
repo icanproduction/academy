@@ -84,7 +84,8 @@ export default function NewBriefPage() {
         }
         if (pillarsRes.ok) {
           const data = await pillarsRes.json();
-          setPillars(Array.isArray(data) ? data : []);
+          const pillarsData = data.data || data;
+          setPillars(Array.isArray(pillarsData) ? pillarsData : []);
         }
         if (productsRes.ok) {
           const data = await productsRes.json();
