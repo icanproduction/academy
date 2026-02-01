@@ -34,3 +34,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+
+# Python scripts with local configs (use env vars instead)
+scripts/check_comments_db.py
+scripts/trending/add_sample_data.py
+scripts/trending/add_samples.py
+scripts/trending/check_notion.py
+scripts/trending/fix_database.py
+scripts/trending/setup_complete.py
+scripts/trending/setup_database.py
+__pycache__/
+*.pyc

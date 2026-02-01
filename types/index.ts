@@ -150,3 +150,33 @@ export interface ScheduledCall {
   notes: string;
   recordingUrl: string;
 }
+
+// Trending Content Types
+export interface TrendingVideo {
+  id: string;
+  videoId: string;
+  videoUrl: string;
+  thumbnailUrl: string;
+  authorUsername: string;
+  authorNickname: string;
+  authorAvatar: string;
+  description: string;
+  views: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  duration: number;
+  soundTitle: string;
+  soundUrl: string;
+  hashtags: string[] | string;  // Can be array or comma-separated string from Notion
+  category: string;
+  fetchedAt: string;
+  embedHtml?: string;
+}
+
+export interface TrendingCategory {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+}

@@ -908,7 +908,7 @@ export async function getContentComments(contentId: string): Promise<ContentComm
     const res = await notion.databases.query({
       database_id: DB.contentComments,
       filter: { property: "Content", relation: { contains: contentId } },
-      sorts: [{ property: "Created At", direction: "ascending" }],
+      sorts: [{ timestamp: "created_time", direction: "ascending" }],
     });
 
     return res.results.map((page: any) => ({
@@ -953,7 +953,7 @@ export async function getContentReviews(contentId: string): Promise<ContentRevie
     const res = await notion.databases.query({
       database_id: DB.contentReviews,
       filter: { property: "Content", relation: { contains: contentId } },
-      sorts: [{ property: "Created At", direction: "descending" }],
+      sorts: [{ timestamp: "created_time", direction: "descending" }],
     });
 
     return res.results.map((page: any) => ({
