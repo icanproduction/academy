@@ -4,17 +4,22 @@ Handles all interactions with Notion database for storing TikTok trending videos
 """
 
 import os
-from datetime import datetime
+import requests
+from datetime import datetime, timedelta
 from typing import List, Dict, Optional
-from notion_client import Client
 from dotenv import load_dotenv
 
 load_dotenv()
 
 class TrendingNotionClient:
     def __init__(self):
-        self.notion = Client(auth=os.environ.get("NOTION_API_KEY"))
+        self.api_key = os.environ.get("NOTION_API_KEY")
         self.database_id = os.environ.get("NOTION_TRENDING_CONTENT_DB_ID", "").strip()
+        self.headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "Notion-Version": "2022-06-28"
+        }
 
         if not self.database_id:
             raise ValueError("NOTION_TRENDING_CONTENT_DB_ID environment variable is not set")
@@ -31,32 +36,31 @@ class TrendingNotionClient:
                 "Thumbnail": {"url": video.get("thumbnail_url", "")},
                 "Author Username": {"rich_text": [{"text": {"content": video.get("author_username", "")}}]},
                 "Author Nickname": {"rich_text": [{"text": {"content": video.get("author_nickname", "")}}]},
-                "Author Avatar": {"url": video.get("author_avatar", "") or None},
-                "Description": {"rich_text": [{"text": {"content": video.get("description", "")[:2000]}}]},  # Notion limit
+                "Description": {"rich_text": [{"text": {"content": video.get("description", "")[:2000]}}]},
                 "Views": {"number": video.get("views", 0)},
                 "Likes": {"number": video.get("likes", 0)},
                 "Comments": {"number": video.get("comments", 0)},
                 "Shares": {"number": video.get("shares", 0)},
                 "Duration": {"number": video.get("duration", 0)},
                 "Sound Title": {"rich_text": [{"text": {"content": video.get("sound_title", "")[:2000]}}]},
-                "Sound URL": {"url": video.get("sound_url", "") or None},
-                "Hashtags": {"multi_select": [{"name": tag[:100]} for tag in video.get("hashtags", [])[:10]]},  # Limit hashtags
-                "Category": {"select": {"name": video.get("category", "Trending")}},
+                "Hashtags": {"multi_select": [{"name": tag[:100]} for tag in video.get("hashtags", [])[:10]]},
+                "Category": {"select": {"name": video.get("category", "Entertainment")}},
                 "Fetched At": {"date": {"start": datetime.utcnow().isoformat()}},
             }
 
-            # Remove None url values (Notion doesn't accept None for url type)
-            if not video.get("author_avatar"):
-                del properties["Author Avatar"]
-            if not video.get("sound_url"):
-                del properties["Sound URL"]
+            url = "https://api.notion.com/v1/pages"
+            payload = {
+                "parent": {"database_id": self.database_id},
+                "properties": properties
+            }
 
-            response = self.notion.pages.create(
-                parent={"database_id": self.database_id},
-                properties=properties
-            )
+            response = requests.post(url, headers=self.headers, json=payload)
 
-            return response.get("id")
+            if response.status_code == 200:
+                return response.json().get("id")
+            else:
+                print(f"Error creating video entry: {response.status_code} - {response.text}")
+                return None
         except Exception as e:
             print(f"Error creating video entry: {e}")
             return None
@@ -64,14 +68,20 @@ class TrendingNotionClient:
     def video_exists(self, video_id: str) -> bool:
         """Check if a video with the given ID already exists in the database."""
         try:
-            response = self.notion.databases.query(
-                database_id=self.database_id,
-                filter={
+            url = f"https://api.notion.com/v1/databases/{self.database_id}/query"
+            payload = {
+                "filter": {
                     "property": "Video ID",
                     "title": {"equals": video_id}
                 }
-            )
-            return len(response.get("results", [])) > 0
+            }
+
+            response = requests.post(url, headers=self.headers, json=payload)
+
+            if response.status_code == 200:
+                results = response.json().get("results", [])
+                return len(results) > 0
+            return False
         except Exception as e:
             print(f"Error checking video existence: {e}")
             return False
@@ -79,14 +89,20 @@ class TrendingNotionClient:
     def get_all_videos(self, limit: int = 100) -> List[Dict]:
         """Retrieve all videos from the database."""
         try:
-            response = self.notion.databases.query(
-                database_id=self.database_id,
-                page_size=min(limit, 100),
-                sorts=[{"property": "Fetched At", "direction": "descending"}]
-            )
+            url = f"https://api.notion.com/v1/databases/{self.database_id}/query"
+            payload = {
+                "page_size": min(limit, 100),
+                "sorts": [{"timestamp": "created_time", "direction": "descending"}]
+            }
+
+            response = requests.post(url, headers=self.headers, json=payload)
+
+            if response.status_code != 200:
+                print(f"Error fetching videos: {response.status_code}")
+                return []
 
             videos = []
-            for page in response.get("results", []):
+            for page in response.json().get("results", []):
                 props = page.get("properties", {})
                 videos.append({
                     "id": page.get("id"),
@@ -107,27 +123,35 @@ class TrendingNotionClient:
     def delete_old_videos(self, days: int = 7) -> int:
         """Delete videos older than specified days. Returns count of deleted videos."""
         try:
-            from datetime import timedelta
             cutoff_date = (datetime.utcnow() - timedelta(days=days)).isoformat()
 
-            response = self.notion.databases.query(
-                database_id=self.database_id,
-                filter={
+            url = f"https://api.notion.com/v1/databases/{self.database_id}/query"
+            payload = {
+                "filter": {
                     "property": "Fetched At",
                     "date": {"before": cutoff_date}
                 }
-            )
+            }
+
+            response = requests.post(url, headers=self.headers, json=payload)
+
+            if response.status_code != 200:
+                return 0
 
             deleted_count = 0
-            for page in response.get("results", []):
+            for page in response.json().get("results", []):
                 try:
-                    self.notion.pages.update(
-                        page_id=page.get("id"),
-                        archived=True
+                    page_id = page.get("id")
+                    archive_url = f"https://api.notion.com/v1/pages/{page_id}"
+                    archive_response = requests.patch(
+                        archive_url,
+                        headers=self.headers,
+                        json={"archived": True}
                     )
-                    deleted_count += 1
+                    if archive_response.status_code == 200:
+                        deleted_count += 1
                 except Exception as e:
-                    print(f"Error deleting page {page.get('id')}: {e}")
+                    print(f"Error deleting page: {e}")
 
             return deleted_count
         except Exception as e:
