@@ -36,13 +36,13 @@ export function AIMessage({
       <div className={cn("flex-1 space-y-3", isUser && "text-right")}>
         <div
           className={cn(
-            "inline-block rounded-2xl px-4 py-2.5 max-w-[90%]",
+            "inline-block max-w-[90%]",
             isUser
-              ? "bg-blue-600 text-white rounded-br-md"
-              : "bg-white border border-slate-200 text-slate-700 rounded-bl-md"
+              ? "chat-bubble-user"
+              : "chat-bubble-ai"
           )}
         >
-          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+          <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
         </div>
 
         {/* Suggestions */}

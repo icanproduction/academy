@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Bot, Loader2, Sparkles, AlertCircle } from "lucide-react";
+import { Send, Bot, Loader2, Sparkles, AlertCircle, Mic, FileText, MessageSquare, Target, RefreshCw, Lightbulb } from "lucide-react";
 import { ChatMessage, AISuggestion, BriefSection } from "@/types/brief";
 import { AIMessage } from "./ai-message";
 import { cn } from "@/lib/utils";
@@ -149,39 +149,40 @@ export function AIChatPanel({
     }
   };
 
-  // Quick action prompts - expanded options
+  // Quick action prompts with Lucide icons
   const quickActions = [
     {
-      label: "🎬 Generate Hook",
+      label: "Generate Hook",
+      icon: Mic,
+      color: "blue",
       prompt: "Buatkan 3 opsi hook yang menarik untuk konten ini. Berikan variasi antara problem hook, curiosity hook, dan benefit hook.",
-      category: "content"
     },
     {
-      label: "📋 Buat Struktur",
+      label: "Buat Script",
+      icon: FileText,
+      color: "purple",
       prompt: "Buatkan struktur detail konten ini scene by scene. Mulai dari hook, body content, sampai CTA.",
-      category: "content"
     },
     {
-      label: "✍️ Draft Caption",
+      label: "Draft Caption",
+      icon: MessageSquare,
+      color: "orange",
       prompt: "Buatkan draft caption yang engaging untuk konten ini. Include relevant hashtags.",
-      category: "content"
     },
     {
-      label: "🎯 Improve CTA",
-      prompt: "Berikan 3 opsi CTA yang lebih kuat untuk konten ini. Fokus ke action yang clear.",
-      category: "enhance"
-    },
-    {
-      label: "🔍 Review Brief",
+      label: "Review Brief",
+      icon: RefreshCw,
+      color: "green",
       prompt: "Tolong review brief saat ini. Apa yang masih kurang atau perlu diperbaiki?",
-      category: "review"
-    },
-    {
-      label: "💡 Ide Konten",
-      prompt: "Kasih beberapa ide angle atau twist yang bisa membuat konten ini lebih menarik.",
-      category: "idea"
     },
   ];
+
+  const colorClasses: Record<string, string> = {
+    blue: "bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100",
+    purple: "bg-purple-50 border-purple-200 text-purple-600 hover:bg-purple-100",
+    orange: "bg-orange-50 border-orange-200 text-orange-600 hover:bg-orange-100",
+    green: "bg-green-50 border-green-200 text-green-600 hover:bg-green-100",
+  };
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
@@ -225,17 +226,24 @@ export function AIChatPanel({
               Tanyakan apapun tentang brief konten kamu
             </p>
 
-            {/* Quick Actions - Grid Layout */}
+            {/* Quick Actions - Grid Layout with Lucide Icons */}
             <div className="grid grid-cols-2 gap-2 max-w-sm mx-auto">
-              {quickActions.map((action) => (
-                <button
-                  key={action.label}
-                  onClick={() => setInput(action.prompt)}
-                  className="text-xs px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-all text-left"
-                >
-                  {action.label}
-                </button>
-              ))}
+              {quickActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <button
+                    key={action.label}
+                    onClick={() => setInput(action.prompt)}
+                    className={cn(
+                      "flex items-center gap-2 text-xs px-3 py-2.5 border rounded-lg transition-colors duration-150 text-left font-medium",
+                      colorClasses[action.color]
+                    )}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    {action.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         ) : (

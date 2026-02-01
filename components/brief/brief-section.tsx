@@ -8,6 +8,12 @@ import {
   Trash2,
   Plus,
   Clock,
+  Mic,
+  Clapperboard,
+  Target,
+  MessageSquare,
+  Film,
+  Sparkles,
 } from "lucide-react";
 import {
   BriefSection as BriefSectionType,
@@ -18,6 +24,28 @@ import {
 } from "@/types/brief";
 import { BriefSectionField } from "./brief-section-field";
 import { cn } from "@/lib/utils";
+
+// Color-coded section icons based on section type
+const getSectionIcon = (title: string) => {
+  const lowerTitle = title.toLowerCase();
+  if (lowerTitle.includes('hook') || lowerTitle.includes('opening')) {
+    return { icon: Mic, color: 'bg-blue-100 text-blue-600' };
+  }
+  if (lowerTitle.includes('body') || lowerTitle.includes('content') || lowerTitle.includes('main')) {
+    return { icon: Clapperboard, color: 'bg-purple-100 text-purple-600' };
+  }
+  if (lowerTitle.includes('cta') || lowerTitle.includes('call to action') || lowerTitle.includes('closing')) {
+    return { icon: Target, color: 'bg-green-100 text-green-600' };
+  }
+  if (lowerTitle.includes('script') || lowerTitle.includes('narasi')) {
+    return { icon: MessageSquare, color: 'bg-orange-100 text-orange-600' };
+  }
+  if (lowerTitle.includes('scene') || lowerTitle.includes('visual')) {
+    return { icon: Film, color: 'bg-pink-100 text-pink-600' };
+  }
+  // Default
+  return { icon: Sparkles, color: 'bg-slate-100 text-slate-600' };
+};
 
 interface BriefSectionProps {
   section: BriefSectionType;
@@ -82,16 +110,17 @@ export function BriefSection({
     (type) => !section.fields.some((f) => f.type === type)
   ) as FieldType[];
 
+  const { icon: SectionIcon, color: iconColor } = getSectionIcon(section.title);
+
   return (
     <div
       className={cn(
-        "bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-300 group",
-        isHighlighted && "ring-2 ring-blue-400 shadow-blue-100"
+        "bg-white rounded-xl border border-slate-200 overflow-hidden transition-colors duration-150 group",
+        isHighlighted && "ring-2 ring-blue-400"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
-        // Only close add field dropdown if not actively using it
         if (!showAddField) setShowAddField(false);
       }}
     >
@@ -108,14 +137,19 @@ export function BriefSection({
 
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="text-slate-500 hover:text-slate-700"
+          className="text-slate-500 hover:text-slate-700 transition-colors duration-150"
         >
           {isCollapsed ? (
             <ChevronRight className="w-5 h-5" />
           ) : (
-            <ChevronDown className="w-5 h-5" />
+            <ChevronDown className={cn("w-5 h-5 transition-transform duration-150")} />
           )}
         </button>
+
+        {/* Color-coded section icon */}
+        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", iconColor)}>
+          <SectionIcon className="w-4 h-4" />
+        </div>
 
         <div className="flex-1 min-w-0">
           {isEditable && isEditingTitle ? (
