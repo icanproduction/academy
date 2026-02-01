@@ -98,17 +98,17 @@ export function ContentDetailTab({ content, isEditable, onUpdate }: ContentDetai
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-5 md:space-y-6">
       {/* Two Column Layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
         {/* Left Column */}
-        <div className="space-y-5">
+        <div className="space-y-4 md:space-y-5">
           {/* Content Type */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Tipe Konten
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {TYPE_OPTIONS.map((type) => {
                 const Icon = type.icon;
                 const isSelected = localContent.contentType === type.value;
@@ -118,7 +118,7 @@ export function ContentDetailTab({ content, isEditable, onUpdate }: ContentDetai
                     onClick={() => isEditable && handleFieldChange("contentType", type.value)}
                     disabled={!isEditable}
                     className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all",
+                      "flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-lg border-2 transition-all text-xs md:text-sm",
                       isSelected
                         ? "border-blue-500 bg-blue-50 text-blue-700"
                         : "border-slate-200 hover:border-slate-300",
@@ -126,7 +126,7 @@ export function ContentDetailTab({ content, isEditable, onUpdate }: ContentDetai
                     )}
                   >
                     <Icon className="w-4 h-4" />
-                    <span className="text-sm font-medium">{type.label}</span>
+                    <span className="font-medium">{type.label}</span>
                   </button>
                 );
               })}
@@ -138,7 +138,7 @@ export function ContentDetailTab({ content, isEditable, onUpdate }: ContentDetai
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Platform
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {PLATFORM_OPTIONS.map((platform) => {
                 const Icon = platform.icon;
                 const isSelected = localContent.platforms?.includes(platform.value);
@@ -148,7 +148,7 @@ export function ContentDetailTab({ content, isEditable, onUpdate }: ContentDetai
                     onClick={() => isEditable && handlePlatformToggle(platform.value)}
                     disabled={!isEditable}
                     className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all",
+                      "flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-lg border-2 transition-all text-xs md:text-sm",
                       isSelected
                         ? "border-blue-500 bg-blue-50 text-blue-700"
                         : "border-slate-200 hover:border-slate-300",
@@ -156,7 +156,7 @@ export function ContentDetailTab({ content, isEditable, onUpdate }: ContentDetai
                     )}
                   >
                     <Icon className="w-4 h-4" />
-                    <span className="text-sm font-medium">{platform.label}</span>
+                    <span className="font-medium">{platform.label}</span>
                   </button>
                 );
               })}
@@ -196,7 +196,7 @@ export function ContentDetailTab({ content, isEditable, onUpdate }: ContentDetai
         </div>
 
         {/* Right Column */}
-        <div className="space-y-5">
+        <div className="space-y-4 md:space-y-5">
           {/* Status */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -283,7 +283,7 @@ export function ContentDetailTab({ content, isEditable, onUpdate }: ContentDetai
       </div>
 
       {/* Full Width Fields */}
-      <div className="space-y-5">
+      <div className="space-y-4 md:space-y-5">
         {/* Judul / Topic */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">

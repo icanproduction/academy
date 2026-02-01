@@ -95,41 +95,41 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="p-8 max-w-6xl">
+    <div className="p-4 md:p-8 max-w-6xl">
       {/* Header */}
-      <div className="mb-10 animate-fade-in">
+      <div className="mb-6 md:mb-10 animate-fade-in">
         <div className="flex items-center gap-3 mb-2">
           <div className={cn(
-            "w-12 h-12 rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-lg",
+            "w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-lg",
             phaseColors[progress?.currentPhase || "Systematize"],
             "shadow-blue-500/30"
           )}>
-            <Target className="w-6 h-6 text-white" />
+            <Target className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold gradient-text">Selamat Datang</h1>
-            <p className="text-slate-500">
-              Hari ke-<span className="font-semibold text-slate-700">{progress?.currentDay || 0}</span> dari 90 — Fase: <span className="font-semibold text-blue-600">{progress?.currentPhase || "Belum Dimulai"}</span>
+            <h1 className="text-2xl md:text-3xl font-bold gradient-text">Selamat Datang</h1>
+            <p className="text-sm md:text-base text-slate-500">
+              Hari ke-<span className="font-semibold text-slate-700">{progress?.currentDay || 0}</span> dari 90
             </p>
           </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-10">
         {/* Progress Program */}
-        <div className="glass-card rounded-2xl p-6 card-hover animate-fade-in" style={{ animationDelay: "100ms" }}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-              <TrendingUp className="w-6 h-6 text-white" />
+        <div className="glass-card rounded-xl md:rounded-2xl p-4 md:p-6 card-hover animate-fade-in" style={{ animationDelay: "100ms" }}>
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+              <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
-            <span className="text-xs font-medium px-3 py-1 rounded-full bg-blue-50 text-blue-600">
+            <span className="hidden md:inline text-xs font-medium px-3 py-1 rounded-full bg-blue-50 text-blue-600">
               Program
             </span>
           </div>
-          <p className="text-sm text-slate-500 mb-1">Progress Program</p>
-          <p className="text-4xl font-bold text-slate-800">{progress?.completionPercentage || 0}<span className="text-xl text-slate-400">%</span></p>
-          <div className="progress-bar mt-4">
+          <p className="text-xs md:text-sm text-slate-500 mb-1">Progress</p>
+          <p className="text-2xl md:text-4xl font-bold text-slate-800">{progress?.completionPercentage || 0}<span className="text-base md:text-xl text-slate-400">%</span></p>
+          <div className="progress-bar mt-3 md:mt-4">
             <div
               className="progress-bar-fill"
               style={{ width: `${progress?.completionPercentage || 0}%` }}
@@ -138,21 +138,21 @@ export default function DashboardPage() {
         </div>
 
         {/* Materi Selesai */}
-        <div className="glass-card rounded-2xl p-6 card-hover animate-fade-in" style={{ animationDelay: "200ms" }}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-              <BookOpen className="w-6 h-6 text-white" />
+        <div className="glass-card rounded-xl md:rounded-2xl p-4 md:p-6 card-hover animate-fade-in" style={{ animationDelay: "200ms" }}>
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+              <BookOpen className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
-            <span className="text-xs font-medium px-3 py-1 rounded-full bg-emerald-50 text-emerald-600">
+            <span className="hidden md:inline text-xs font-medium px-3 py-1 rounded-full bg-emerald-50 text-emerald-600">
               Materi
             </span>
           </div>
-          <p className="text-sm text-slate-500 mb-1">Materi Selesai</p>
-          <p className="text-4xl font-bold text-slate-800">
+          <p className="text-xs md:text-sm text-slate-500 mb-1">Materi</p>
+          <p className="text-2xl md:text-4xl font-bold text-slate-800">
             {courseProgress.completed}
-            <span className="text-xl text-slate-400">/{courseProgress.total}</span>
+            <span className="text-base md:text-xl text-slate-400">/{courseProgress.total}</span>
           </p>
-          <div className="progress-bar mt-4">
+          <div className="progress-bar mt-3 md:mt-4">
             <div
               className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500"
               style={{ width: `${courseProgress.total > 0 ? (courseProgress.completed / courseProgress.total) * 100 : 0}%` }}
@@ -161,82 +161,88 @@ export default function DashboardPage() {
         </div>
 
         {/* Fase Saat Ini */}
-        <div className="glass-card rounded-2xl p-6 card-hover animate-fade-in" style={{ animationDelay: "300ms" }}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
-              <Layers className="w-6 h-6 text-white" />
+        <div className="col-span-2 md:col-span-1 glass-card rounded-xl md:rounded-2xl p-4 md:p-6 card-hover animate-fade-in" style={{ animationDelay: "300ms" }}>
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+              <Layers className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
             <span className="text-xs font-medium px-3 py-1 rounded-full bg-violet-50 text-violet-600">
               Fase
             </span>
           </div>
-          <p className="text-sm text-slate-500 mb-1">Fase Saat Ini</p>
-          <p className="text-3xl font-bold text-slate-800">{progress?.currentPhase || "—"}</p>
-          <p className="text-slate-500 text-sm mt-2 flex items-center gap-1">
-            <Clock className="w-4 h-4" />
+          <p className="text-xs md:text-sm text-slate-500 mb-1">Fase Saat Ini</p>
+          <p className="text-xl md:text-3xl font-bold text-slate-800">{progress?.currentPhase || "—"}</p>
+          <p className="text-slate-500 text-xs md:text-sm mt-2 flex items-center gap-1">
+            <Clock className="w-3 h-3 md:w-4 md:h-4" />
             Hari ke-{progress?.currentDay || 0} dari 30
           </p>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="mb-10">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-amber-500" />
+      <div className="mb-6 md:mb-10">
+        <h2 className="text-base md:text-lg font-semibold text-slate-800 mb-3 md:mb-4 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-amber-500" />
           Aksi Cepat
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <Link
             href="/dashboard/course"
-            className="group glass-card rounded-2xl p-6 card-hover animate-fade-in relative overflow-hidden"
+            className="group glass-card rounded-xl md:rounded-2xl p-4 md:p-6 card-hover animate-fade-in relative overflow-hidden"
             style={{ animationDelay: "400ms" }}
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-2xl transform translate-x-10 -translate-y-10" />
-            <div className="relative">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-300">
-                <Play className="w-6 h-6 text-white" />
+            <div className="relative flex sm:block items-center gap-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center sm:mb-4 shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-300 shrink-0">
+                <Play className="w-5 h-5 md:w-6 md:h-6 text-white" />
               </div>
-              <p className="font-semibold text-slate-800 group-hover:text-blue-600 transition-colors flex items-center gap-2">
-                Lanjut Belajar
-                <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-              </p>
-              <p className="text-sm text-slate-500 mt-1">Lanjutkan materi terakhir</p>
+              <div>
+                <p className="text-sm md:text-base font-semibold text-slate-800 group-hover:text-blue-600 transition-colors flex items-center gap-2">
+                  Lanjut Belajar
+                  <ArrowRight className="w-4 h-4 hidden sm:block opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                </p>
+                <p className="text-xs md:text-sm text-slate-500 mt-0.5 md:mt-1">Lanjutkan materi</p>
+              </div>
             </div>
           </Link>
 
           <Link
             href="/dashboard/assets"
-            className="group glass-card rounded-2xl p-6 card-hover animate-fade-in relative overflow-hidden"
+            className="group glass-card rounded-xl md:rounded-2xl p-4 md:p-6 card-hover animate-fade-in relative overflow-hidden"
             style={{ animationDelay: "500ms" }}
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-full blur-2xl transform translate-x-10 -translate-y-10" />
-            <div className="relative">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mb-4 shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-300">
-                <FolderOpen className="w-6 h-6 text-white" />
+            <div className="relative flex sm:block items-center gap-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center sm:mb-4 shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-300 shrink-0">
+                <FolderOpen className="w-5 h-5 md:w-6 md:h-6 text-white" />
               </div>
-              <p className="font-semibold text-slate-800 group-hover:text-amber-600 transition-colors flex items-center gap-2">
-                Brand Assets
-                <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-              </p>
-              <p className="text-sm text-slate-500 mt-1">Kelola link assets kamu</p>
+              <div>
+                <p className="text-sm md:text-base font-semibold text-slate-800 group-hover:text-amber-600 transition-colors flex items-center gap-2">
+                  Brand Assets
+                  <ArrowRight className="w-4 h-4 hidden sm:block opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                </p>
+                <p className="text-xs md:text-sm text-slate-500 mt-0.5 md:mt-1">Kelola assets</p>
+              </div>
             </div>
           </Link>
 
           <Link
             href="/dashboard/contents/new"
-            className="group glass-card rounded-2xl p-6 card-hover animate-fade-in relative overflow-hidden"
+            className="group glass-card rounded-xl md:rounded-2xl p-4 md:p-6 card-hover animate-fade-in relative overflow-hidden"
             style={{ animationDelay: "600ms" }}
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-violet-500/10 to-purple-500/10 rounded-full blur-2xl transform translate-x-10 -translate-y-10" />
-            <div className="relative">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-violet-500/30 group-hover:scale-110 transition-transform duration-300">
-                <FileText className="w-6 h-6 text-white" />
+            <div className="relative flex sm:block items-center gap-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center sm:mb-4 shadow-lg shadow-violet-500/30 group-hover:scale-110 transition-transform duration-300 shrink-0">
+                <FileText className="w-5 h-5 md:w-6 md:h-6 text-white" />
               </div>
-              <p className="font-semibold text-slate-800 group-hover:text-violet-600 transition-colors flex items-center gap-2">
-                Buat Konten
-                <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-              </p>
-              <p className="text-sm text-slate-500 mt-1">Mulai buat konten baru</p>
+              <div>
+                <p className="text-sm md:text-base font-semibold text-slate-800 group-hover:text-violet-600 transition-colors flex items-center gap-2">
+                  Buat Konten
+                  <ArrowRight className="w-4 h-4 hidden sm:block opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                </p>
+                <p className="text-xs md:text-sm text-slate-500 mt-0.5 md:mt-1">Konten baru</p>
+              </div>
             </div>
           </Link>
         </div>
@@ -244,28 +250,28 @@ export default function DashboardPage() {
 
       {/* Tasks */}
       <div className="animate-fade-in" style={{ animationDelay: "700ms" }}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+        <div className="flex items-center justify-between mb-3 md:mb-4">
+          <h2 className="text-base md:text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" />
             Tugas Kamu
           </h2>
-          <span className="text-sm text-slate-500">
+          <span className="text-xs md:text-sm text-slate-500">
             {tasks.filter(t => t.status === "done").length}/{tasks.length} selesai
           </span>
         </div>
-        <div className="glass-card rounded-2xl overflow-hidden">
+        <div className="glass-card rounded-xl md:rounded-2xl overflow-hidden">
           <div className="divide-y divide-slate-100">
             {tasks.map((task, index) => (
               <div
                 key={task.id}
-                className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors animate-fade-in"
+                className="p-3 md:p-4 flex items-start md:items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors animate-fade-in"
                 style={{ animationDelay: `${800 + index * 50}ms` }}
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-start md:items-center gap-3 md:gap-4 flex-1 min-w-0">
                   <button
                     onClick={() => toggleTask(task.id)}
                     className={cn(
-                      "w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300",
+                      "w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 mt-0.5 md:mt-0",
                       task.status === "done"
                         ? "bg-gradient-to-br from-emerald-500 to-teal-500 shadow-md shadow-emerald-500/30"
                         : task.status === "in_progress"
@@ -273,12 +279,12 @@ export default function DashboardPage() {
                         : "border-2 border-slate-300 hover:border-slate-400"
                     )}
                   >
-                    {task.status === "done" && <CheckCircle2 className="w-4 h-4 text-white" />}
-                    {task.status === "in_progress" && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                    {task.status === "done" && <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-white" />}
+                    {task.status === "in_progress" && <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-blue-500" />}
                   </button>
-                  <div>
+                  <div className="min-w-0">
                     <p className={cn(
-                      "text-sm font-medium transition-all",
+                      "text-xs md:text-sm font-medium transition-all line-clamp-2 md:line-clamp-1",
                       task.status === "done" ? "line-through text-slate-400" : "text-slate-700"
                     )}>
                       {task.title}
@@ -291,18 +297,18 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col md:flex-row items-end md:items-center gap-1.5 md:gap-3 shrink-0">
                   <span className={cn(
-                    "text-xs px-2.5 py-1 rounded-full font-medium",
+                    "text-xs px-2 md:px-2.5 py-0.5 md:py-1 rounded-full font-medium",
                     task.status === "done"
                       ? "bg-emerald-50 text-emerald-600"
                       : task.status === "in_progress"
                       ? "bg-blue-50 text-blue-600"
                       : "bg-slate-100 text-slate-500"
                   )}>
-                    {task.status === "done" ? "Selesai" : task.status === "in_progress" ? "Dikerjakan" : "Belum"}
+                    {task.status === "done" ? "Selesai" : task.status === "in_progress" ? "Proses" : "Belum"}
                   </span>
-                  <span className="text-xs text-slate-400 flex items-center gap-1">
+                  <span className="hidden md:flex text-xs text-slate-400 items-center gap-1">
                     <Calendar className="w-3 h-3" />
                     {task.dueDate}
                   </span>

@@ -175,17 +175,17 @@ export function DiscussionTab({ contentId, revisionFeedback }: DiscussionTabProp
   }
 
   return (
-    <div className="p-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 max-w-6xl mx-auto">
         {/* Discussion Thread - 2/3 width */}
         <div className="lg:col-span-2 space-y-4">
-          <h3 className="font-semibold text-lg flex items-center gap-2">
+          <h3 className="font-semibold text-base md:text-lg flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-blue-600" />
             Diskusi
           </h3>
 
           {/* Messages */}
-          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+          <div className="space-y-3 md:space-y-4 max-h-[400px] md:max-h-[500px] overflow-y-auto pr-2">
             {discussions.length === 0 ? (
               <div className="text-center py-8 text-slate-400">
                 <MessageSquare className="w-10 h-10 mx-auto mb-2 opacity-50" />

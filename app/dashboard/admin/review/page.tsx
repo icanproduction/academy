@@ -294,8 +294,8 @@ export default function AdminReviewPage() {
     const isIdeation = selectedItem.status === "idea_submitted";
 
     return (
-      <div className="p-8 max-w-6xl animate-fade-in">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-4 md:p-8 max-w-6xl animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <button
             onClick={() => setSelectedItem(null)}
             className="inline-flex items-center gap-2 text-sm text-fg-muted hover:text-fg transition-colors"
@@ -305,16 +305,16 @@ export default function AdminReviewPage() {
           </button>
           <Link
             href={`/dashboard/admin/contents/${selectedItem.id}`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-200 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-200 transition-colors"
           >
             <Eye className="w-4 h-4" />
             Lihat Detail dengan Tab
           </Link>
         </div>
 
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Content Details */}
-          <div className="col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6">
             <div className="glass-card rounded-2xl p-6">
               <div className="flex items-start gap-4">
                 <div className={cn(
@@ -672,59 +672,59 @@ export default function AdminReviewPage() {
 
   // List View
   return (
-    <div className="p-8 max-w-6xl animate-fade-in">
+    <div className="p-4 md:p-8 max-w-6xl animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6 md:mb-8">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-            <ClipboardCheck className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+            <ClipboardCheck className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Review Konten</h1>
-            <p className="text-slate-500">Kelola dan review semua konten dari client</p>
+            <h1 className="text-xl md:text-2xl font-bold text-slate-800">Review Konten</h1>
+            <p className="text-sm md:text-base text-slate-500 hidden sm:block">Kelola dan review semua konten dari client</p>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-5 gap-4 mb-6">
-        <div className="glass-card rounded-xl p-4">
-          <p className="text-sm text-slate-500">Total Konten</p>
-          <p className="text-3xl font-bold text-slate-800">{allContents.length}</p>
+      {/* Stats - scrollable on mobile */}
+      <div className="flex gap-3 md:grid md:grid-cols-5 md:gap-4 mb-6 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:overflow-visible">
+        <div className="glass-card rounded-xl p-3 md:p-4 min-w-[120px] md:min-w-0 shrink-0 md:shrink">
+          <p className="text-xs md:text-sm text-slate-500">Total</p>
+          <p className="text-2xl md:text-3xl font-bold text-slate-800">{allContents.length}</p>
         </div>
-        <div className="glass-card rounded-xl p-4 border-l-4 border-amber-500">
-          <p className="text-sm text-slate-500">Perlu Review</p>
-          <p className="text-3xl font-bold text-amber-600">{pendingReviewContents.length}</p>
+        <div className="glass-card rounded-xl p-3 md:p-4 border-l-4 border-amber-500 min-w-[120px] md:min-w-0 shrink-0 md:shrink">
+          <p className="text-xs md:text-sm text-slate-500">Review</p>
+          <p className="text-2xl md:text-3xl font-bold text-amber-600">{pendingReviewContents.length}</p>
         </div>
-        <div className="glass-card rounded-xl p-4 border-l-4 border-slate-400">
-          <p className="text-sm text-slate-500">Draft</p>
-          <p className="text-3xl font-bold text-slate-600">{draftContents.length}</p>
+        <div className="glass-card rounded-xl p-3 md:p-4 border-l-4 border-slate-400 min-w-[120px] md:min-w-0 shrink-0 md:shrink">
+          <p className="text-xs md:text-sm text-slate-500">Draft</p>
+          <p className="text-2xl md:text-3xl font-bold text-slate-600">{draftContents.length}</p>
         </div>
-        <div className="glass-card rounded-xl p-4 border-l-4 border-blue-500">
-          <p className="text-sm text-slate-500">In Progress</p>
-          <p className="text-3xl font-bold text-blue-600">{inProgressContents.length}</p>
+        <div className="glass-card rounded-xl p-3 md:p-4 border-l-4 border-blue-500 min-w-[120px] md:min-w-0 shrink-0 md:shrink">
+          <p className="text-xs md:text-sm text-slate-500">Progress</p>
+          <p className="text-2xl md:text-3xl font-bold text-blue-600">{inProgressContents.length}</p>
         </div>
-        <div className="glass-card rounded-xl p-4 border-l-4 border-green-500">
-          <p className="text-sm text-slate-500">Selesai</p>
-          <p className="text-3xl font-bold text-green-600">{completedContents.length}</p>
+        <div className="glass-card rounded-xl p-3 md:p-4 border-l-4 border-green-500 min-w-[120px] md:min-w-0 shrink-0 md:shrink">
+          <p className="text-xs md:text-sm text-slate-500">Selesai</p>
+          <p className="text-2xl md:text-3xl font-bold text-green-600">{completedContents.length}</p>
         </div>
       </div>
 
-      {/* Filter */}
-      <div className="flex items-center gap-2 mb-6">
-        <Filter className="w-4 h-4 text-slate-400" />
+      {/* Filter - scrollable on mobile */}
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:overflow-visible">
+        <Filter className="w-4 h-4 text-slate-400 shrink-0" />
         {[
-          { id: "pending_review" as const, label: "Perlu Review", count: pendingReviewContents.length },
+          { id: "pending_review" as const, label: "Review", count: pendingReviewContents.length },
           { id: "all" as const, label: "Semua" },
           { id: "draft" as const, label: "Draft", count: draftContents.length },
-          { id: "in_progress" as const, label: "In Progress", count: inProgressContents.length },
+          { id: "in_progress" as const, label: "Progress", count: inProgressContents.length },
           { id: "completed" as const, label: "Selesai", count: completedContents.length },
         ].map((filter) => (
           <button
             key={filter.id}
             onClick={() => setFilterStatus(filter.id)}
             className={cn(
-              "px-4 py-2 rounded-xl font-medium text-sm transition-all flex items-center gap-2",
+              "px-3 md:px-4 py-2 rounded-xl font-medium text-xs md:text-sm transition-all flex items-center gap-1.5 md:gap-2 whitespace-nowrap shrink-0",
               filterStatus === filter.id
                 ? filter.id === "pending_review"
                   ? "bg-amber-50 text-amber-600"
@@ -748,26 +748,26 @@ export default function AdminReviewPage() {
       </div>
 
       {/* Content List */}
-      <div className="space-y-4">
+      <div className="space-y-3 md:space-y-4">
         {filteredContents.length === 0 ? (
-          <div className="glass-card rounded-2xl p-12 text-center">
+          <div className="glass-card rounded-2xl p-8 md:p-12 text-center">
             {filterStatus === "pending_review" ? (
               <>
-                <CheckCircle className="w-16 h-16 text-emerald-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-slate-700 mb-2">
+                <CheckCircle className="w-12 h-12 md:w-16 md:h-16 text-emerald-300 mx-auto mb-4" />
+                <h3 className="text-lg md:text-xl font-semibold text-slate-700 mb-2">
                   Tidak ada konten yang perlu direview
                 </h3>
-                <p className="text-slate-500">
-                  Semua konten sudah direview. Gunakan filter lain untuk melihat konten lainnya.
+                <p className="text-sm md:text-base text-slate-500">
+                  Semua konten sudah direview.
                 </p>
               </>
             ) : (
               <>
-                <FileVideo className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-slate-700 mb-2">
+                <FileVideo className="w-12 h-12 md:w-16 md:h-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-lg md:text-xl font-semibold text-slate-700 mb-2">
                   Tidak ada konten
                 </h3>
-                <p className="text-slate-500">
+                <p className="text-sm md:text-base text-slate-500">
                   Belum ada konten dengan status ini.
                 </p>
               </>
@@ -784,7 +784,7 @@ export default function AdminReviewPage() {
               <div
                 key={item.id}
                 className={cn(
-                  "glass-card rounded-2xl p-5 animate-fade-in transition-all",
+                  "glass-card rounded-xl md:rounded-2xl p-4 md:p-5 animate-fade-in transition-all",
                   isReviewable
                     ? "cursor-pointer hover:shadow-md hover:border-amber-300"
                     : "hover:shadow-sm"
@@ -792,17 +792,33 @@ export default function AdminReviewPage() {
                 style={{ animationDelay: `${index * 30}ms` }}
                 onClick={() => isReviewable && selectItem(item)}
               >
-                <div className="flex items-start gap-4">
-                  {/* Type Icon */}
-                  <div className={cn(
-                    "w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center",
-                    typeConfig.color
-                  )}>
-                    <TypeIcon className="w-6 h-6 text-white" />
+                <div className="flex flex-col md:flex-row md:items-start gap-3 md:gap-4">
+                  {/* Top row on mobile: icon + title + status */}
+                  <div className="flex items-start gap-3 md:contents">
+                    {/* Type Icon */}
+                    <div className={cn(
+                      "w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-gradient-to-br flex items-center justify-center shrink-0",
+                      typeConfig.color
+                    )}>
+                      <TypeIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                    </div>
+
+                    {/* Content Info - Mobile */}
+                    <div className="flex-1 min-w-0 md:hidden">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-md text-xs font-medium",
+                          statusConfig.color
+                        )}>
+                          {statusConfig.label}
+                        </span>
+                      </div>
+                      <h3 className="text-base font-semibold text-slate-800 line-clamp-2">{item.title}</h3>
+                    </div>
                   </div>
 
-                  {/* Content Info */}
-                  <div className="flex-1 min-w-0">
+                  {/* Content Info - Desktop */}
+                  <div className="hidden md:block flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4 mb-2">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -856,22 +872,47 @@ export default function AdminReviewPage() {
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
+                  {/* Mobile: metadata row */}
+                  <div className="md:hidden flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                    <span className="flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      {item.clientName}
+                    </span>
+                    <span>•</span>
+                    <span>{item.pillarEmoji} {item.pillarName}</span>
+                    <span>•</span>
+                    <div className="flex items-center gap-1">
+                      {item.platforms?.includes("instagram") && (
+                        <span className="w-4 h-4 rounded bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                          <Instagram className="w-2.5 h-2.5 text-white" />
+                        </span>
+                      )}
+                      {item.platforms?.includes("tiktok") && (
+                        <span className="w-4 h-4 rounded bg-black flex items-center justify-center">
+                          <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                          </svg>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions - full width on mobile */}
+                  <div className="flex items-center gap-2 md:shrink-0">
                     {item.outputUrl && (
                       <a
                         href={item.outputUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1 px-3 py-2 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-1 px-3 py-2 text-xs md:text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all"
                       >
                         <Eye className="w-4 h-4" />
-                        Output
+                        <span className="hidden sm:inline">Output</span>
                       </a>
                     )}
                     {isReviewable ? (
-                      <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-medium shadow-lg shadow-amber-500/25 hover:shadow-xl transition-all">
+                      <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-sm font-medium shadow-lg shadow-amber-500/25 hover:shadow-xl transition-all">
                         <ClipboardCheck className="w-4 h-4" />
                         Review
                       </button>
@@ -879,7 +920,7 @@ export default function AdminReviewPage() {
                       <Link
                         href={`/dashboard/admin/contents/${item.id}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg font-medium hover:bg-slate-200 transition-all"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-200 transition-all"
                       >
                         <Eye className="w-4 h-4" />
                         Lihat

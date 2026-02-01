@@ -24,7 +24,7 @@ interface ContentTabsProps {
 
 export function ContentTabs({ activeTab, onTabChange }: ContentTabsProps) {
   return (
-    <div className="border-b border-slate-200 bg-white">
+    <div className="hidden md:block border-b border-slate-200 bg-white">
       <div className="flex">
         {TABS.map((tab) => {
           const Icon = tab.icon;
