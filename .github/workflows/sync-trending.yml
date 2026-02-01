@@ -8,6 +8,9 @@ on:
 jobs:
   sync-trending:
     runs-on: ubuntu-latest
+    env:
+      NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+      NOTION_TRENDING_CONTENT_DB_ID: ${{ secrets.NOTION_TRENDING_CONTENT_DB_ID }}
 
     steps:
       - name: Checkout repository
@@ -21,10 +24,12 @@ jobs:
       - name: Install dependencies
         run: pip install notion-client python-dotenv requests
 
+      - name: Debug - Check env vars
+        run: |
+          echo "NOTION_API_KEY is set: ${{ secrets.NOTION_API_KEY != '' }}"
+          echo "NOTION_TRENDING_CONTENT_DB_ID is set: ${{ secrets.NOTION_TRENDING_CONTENT_DB_ID != '' }}"
+
       - name: Run trending sync
-        env:
-          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
-          NOTION_TRENDING_CONTENT_DB_ID: ${{ secrets.NOTION_TRENDING_CONTENT_DB_ID }}
         run: |
           cd scripts/trending
           python run_daily.py
