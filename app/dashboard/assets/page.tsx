@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import {
   FolderOpen,
@@ -9,12 +9,11 @@ import {
   Palette,
   FileImage,
   Link2,
-  Video,
   MoreHorizontal,
   Search,
   X,
   Loader2,
-  Trash2,
+  AlertCircle,
 } from "lucide-react";
 
 interface Asset {
@@ -36,6 +35,7 @@ const ASSET_TYPES = [
 export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string | null>(null);
@@ -50,45 +50,65 @@ export default function AssetsPage() {
   });
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    // Get client ID from session
-    const session = localStorage.getItem("ican_session");
-    if (session) {
-      try {
-        const parsed = JSON.parse(session);
-        setClientId(parsed.clientId);
-      } catch (e) {
-        console.error("Error parsing session:", e);
-        setLoading(false);
+  // Fetch assets function
+  const fetchAssets = useCallback(async (cid: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const res = await fetch(`/api/client/assets?clientId=${cid}`);
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
       }
-    } else {
-      // No session, stop loading
+
+      const data = await res.json();
+
+      if (data.success) {
+        setAssets(data.assets || []);
+      } else {
+        throw new Error(data.error || "Gagal memuat assets");
+      }
+    } catch (err: any) {
+      console.error("Error fetching assets:", err);
+      setError(err.message || "Gagal memuat assets");
+      setAssets([]);
+    } finally {
       setLoading(false);
     }
   }, []);
 
+  // Initialize - get client ID and fetch assets
   useEffect(() => {
-    if (clientId) {
-      fetchAssets();
-    }
-  }, [clientId]);
+    const initializeAssets = async () => {
+      try {
+        const session = localStorage.getItem("ican_session");
 
-  const fetchAssets = async () => {
-    if (!clientId) return;
+        if (!session) {
+          setError("Session tidak ditemukan. Silakan login ulang.");
+          setLoading(false);
+          return;
+        }
 
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/client/assets?clientId=${clientId}`);
-      const data = await res.json();
-      if (data.success) {
-        setAssets(data.assets);
+        const parsed = JSON.parse(session);
+
+        if (!parsed.clientId) {
+          setError("Client ID tidak ditemukan dalam session.");
+          setLoading(false);
+          return;
+        }
+
+        setClientId(parsed.clientId);
+        await fetchAssets(parsed.clientId);
+      } catch (e) {
+        console.error("Error initializing assets:", e);
+        setError("Error parsing session. Silakan login ulang.");
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching assets:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    initializeAssets();
+  }, [fetchAssets]);
 
   const handleAddAsset = async () => {
     if (!clientId || !newAsset.assetName || !newAsset.url) return;
@@ -105,7 +125,7 @@ export default function AssetsPage() {
       if (data.success) {
         setShowAddModal(false);
         setNewAsset({ assetName: "", assetType: "Canva Template", url: "", description: "" });
-        fetchAssets();
+        fetchAssets(clientId);
       } else {
         alert("Gagal menambahkan asset: " + data.error);
       }
@@ -119,7 +139,7 @@ export default function AssetsPage() {
 
   // Filter assets
   const filteredAssets = assets.filter((asset) => {
-    const matchesSearch = asset.assetName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = asset.assetName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       asset.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = !filterType || asset.assetType === filterType;
     return matchesSearch && matchesType;
@@ -150,12 +170,42 @@ export default function AssetsPage() {
     return colors[type] || colors.Other;
   };
 
+  const getHostname = (url: string) => {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return url;
+    }
+  };
+
+  // Loading state
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="flex items-center gap-3 text-slate-500">
           <Loader2 className="w-5 h-5 animate-spin" />
           <span>Memuat assets...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-100 flex items-center justify-center">
+            <AlertCircle className="w-8 h-8 text-red-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">Gagal Memuat Assets</h3>
+          <p className="text-slate-500 mb-4">{error}</p>
+          <button
+            onClick={() => clientId && fetchAssets(clientId)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
+          >
+            Coba Lagi
+          </button>
         </div>
       </div>
     );
@@ -287,7 +337,7 @@ export default function AssetsPage() {
                       <div className="flex items-center gap-2 text-xs text-slate-400">
                         <Link2 className="w-3 h-3" />
                         <span className="truncate">
-                          {new URL(asset.url).hostname}
+                          {getHostname(asset.url)}
                         </span>
                       </div>
                     </a>
