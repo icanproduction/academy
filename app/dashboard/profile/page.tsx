@@ -18,7 +18,7 @@ import {
 
 interface Profile {
   id: string;
-  name: string;
+  businessName: string;
   contactPerson: string;
   email: string;
   phone: string;
@@ -195,10 +195,10 @@ export default function ProfilePage() {
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <div className="w-16 h-16 bg-gradient-to-br from-accent to-blue-600 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-accent/30">
-          {profile.name?.[0] || "?"}
+          {profile.businessName?.[0] || "?"}
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">{profile.name}</h1>
+          <h1 className="text-2xl font-bold text-slate-800">{profile.businessName}</h1>
           <p className="text-slate-500">{profile.email}</p>
         </div>
       </div>
@@ -238,7 +238,7 @@ export default function ProfilePage() {
             </label>
             <input
               type="text"
-              value={profile.name}
+              value={profile.businessName}
               disabled
               className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 text-slate-500 cursor-not-allowed"
             />
