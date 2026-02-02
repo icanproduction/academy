@@ -80,12 +80,23 @@ ${products.map((p: any) => `- ${p.name}: ${p.description || ""}`).join("\n")}
     // System prompt - keep it concise to save tokens
     const systemPrompt = `Kamu adalah content strategist untuk brand. Generate 5 ide topic konten.
 
-BRAND CONTEXT (RINGKAS):
+BRAND CONTEXT:
 ${context.substring(0, 1500)}
 
-CONTENT PILLAR: ${pillar.emoji} ${pillar.name}
-Deskripsi: ${pillar.description}
+═══════════════════════════════════════════════════════════════
+📌 CONTENT PILLAR YANG DIPILIH: ${pillar.emoji} ${pillar.name}
+═══════════════════════════════════════════════════════════════
+Deskripsi: ${pillar.description || "Sesuai dengan nama pillar"}
+Hook Styles: ${pillar.hookStyles?.join(", ") || "Flexible"}
+Target Emotion: ${pillar.targetEmotion || "Engage"}
+CTA Type: ${pillar.ctaType || "Follow/Engage"}
+
+🎯 SEMUA TOPIC HARUS:
+- Sesuai dengan pillar "${pillar.name}"
+- Menggunakan hook style yang cocok: ${pillar.hookStyles?.join(", ") || "sesuai pillar"}
+- Membangkitkan emosi: ${pillar.targetEmotion || "engagement"}
 ${productSection}
+
 FORMAT: ${contentType.toUpperCase()} - ${formatHints[contentType] || ""}
 PLATFORM: ${platforms?.join(", ") || "Instagram"}
 
@@ -99,12 +110,13 @@ OUTPUT FORMAT (JSON array, tanpa markdown):
   }
 ]
 
-RULES:
-- 5 topic berbeda, relevan dengan pillar
+RULES PENTING:
+- 5 topic berbeda, WAJIB relevan dengan pillar "${pillar.name}"
+- Topic harus sesuai karakteristik pillar: ${pillar.description || pillar.name}
 - Judul menarik, mudah dipahami
-- Sesuaikan dengan brand voice
+- Sesuaikan dengan brand voice dari context
 - Fokus pada value untuk audience
-- Jika ada produk, integrasikan secara natural (tidak hard-sell)`;
+- Jika ada produk highlight, integrasikan secara natural (tidak hard-sell)`;
 
     // Call Claude API with minimal tokens
     console.log("Calling Anthropic API...");
