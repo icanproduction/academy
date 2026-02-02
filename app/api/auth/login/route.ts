@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       success: true,
       user: {
         id: client.id,
+        clientId: client.id, // Add clientId for assets page compatibility
         email: client.email,
         name: client.businessName,
         role: client.role || "client",
