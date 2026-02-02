@@ -92,14 +92,23 @@ export default function AssetsPage() {
 
         const parsed = JSON.parse(session);
 
-        if (!parsed.clientId) {
-          setError("Client ID tidak ditemukan dalam session.");
+        // Support both old sessions (with id only) and new sessions (with clientId)
+        const cid = parsed.clientId || parsed.id;
+
+        if (!cid) {
+          setError("Client ID tidak ditemukan dalam session. Silakan logout dan login ulang.");
           setLoading(false);
           return;
         }
 
-        setClientId(parsed.clientId);
-        await fetchAssets(parsed.clientId);
+        // Update session if clientId was missing (for old sessions)
+        if (!parsed.clientId && parsed.id) {
+          parsed.clientId = parsed.id;
+          localStorage.setItem("ican_session", JSON.stringify(parsed));
+        }
+
+        setClientId(cid);
+        await fetchAssets(cid);
       } catch (e) {
         console.error("Error initializing assets:", e);
         setError("Error parsing session. Silakan login ulang.");
