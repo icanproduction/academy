@@ -15,6 +15,7 @@ import {
   Instagram,
 } from "lucide-react";
 import { StatusSelector, ContentStatus } from "./status-selector";
+import { GoogleDriveEmbed, isGoogleDriveUrl } from "./google-drive-embed";
 
 type ContentType = "reels" | "carousel" | "story";
 
@@ -97,8 +98,22 @@ export function ContentDetailTab({ content, isEditable, onUpdate }: ContentDetai
     handleFieldChange("platforms", newPlatforms);
   };
 
+  // Check if outputUrl is a Google Drive URL
+  const hasGoogleDriveOutput = isGoogleDriveUrl(localContent.outputUrl);
+
   return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-5 md:space-y-6">
+      {/* Google Drive Preview - Show at top if available */}
+      {hasGoogleDriveOutput && (
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-slate-700 mb-3">
+            <Film className="w-4 h-4 inline mr-1" />
+            Preview Output
+          </label>
+          <GoogleDriveEmbed url={localContent.outputUrl} />
+        </div>
+      )}
+
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
         {/* Left Column */}
