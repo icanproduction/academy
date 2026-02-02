@@ -75,6 +75,63 @@ function briefToText(sections: any[]): string {
     .join("\n\n");
 }
 
+// Helper to extract URLs from text
+function extractUrls(text: string): string[] {
+  const urlRegex = /(https?:\/\/[^\s<>"{}|\\^`\[\]]+)/gi;
+  return text.match(urlRegex) || [];
+}
+
+// Helper to fetch URL content (basic text extraction)
+async function fetchUrlContent(url: string): Promise<string | null> {
+  try {
+    // Validate URL
+    const urlObj = new URL(url);
+
+    // Skip certain domains that won't work well
+    const skipDomains = ['instagram.com', 'tiktok.com', 'facebook.com', 'twitter.com', 'x.com'];
+    if (skipDomains.some(domain => urlObj.hostname.includes(domain))) {
+      return `[Social media link: ${url} - tidak bisa di-fetch, tapi bisa dijadikan referensi gaya/format]`;
+    }
+
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; ICAN-Bot/1.0)',
+      },
+      signal: AbortSignal.timeout(5000), // 5 second timeout
+    });
+
+    if (!response.ok) return null;
+
+    const html = await response.text();
+
+    // Basic HTML to text extraction
+    let text = html
+      // Remove scripts and styles
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      // Remove HTML tags
+      .replace(/<[^>]+>/g, ' ')
+      // Decode HTML entities
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      // Clean up whitespace
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Limit to 1500 chars
+    if (text.length > 1500) {
+      text = text.substring(0, 1500) + '...';
+    }
+
+    return text || null;
+  } catch {
+    return null;
+  }
+}
+
 // POST /api/contents/[id]/ai/chat - AI chat with brief context
 export async function POST(
   request: NextRequest,
@@ -112,6 +169,19 @@ export async function POST(
       revisionFeedback = await getLatestReviewFeedback(contentId);
     }
 
+    // Check if user message contains URLs and try to fetch content
+    const urlsInMessage = extractUrls(message);
+    let urlContext = "";
+    if (urlsInMessage.length > 0) {
+      const urlContents = await Promise.all(
+        urlsInMessage.slice(0, 2).map(async (url) => {
+          const content = await fetchUrlContent(url);
+          return content ? `\n[URL: ${url}]\n${content}\n` : `\n[URL: ${url}] (tidak bisa diakses)\n`;
+        })
+      );
+      urlContext = urlContents.join("");
+    }
+
     // Build conversation messages for Claude
     const messages: { role: "user" | "assistant"; content: string }[] = [];
 
@@ -143,10 +213,13 @@ export async function POST(
       );
     }
 
-    // Add current user message
+    // Add current user message (with URL content if any)
+    const userMessageContent = urlContext
+      ? `${message}\n\n--- KONTEN DARI URL YANG DIBAGIKAN ---${urlContext}`
+      : message;
     messages.push({
       role: "user",
-      content: message,
+      content: userMessageContent,
     });
 
     // Content type specific guidance
@@ -196,6 +269,7 @@ ${pillar ? `   → Tone/Vibe: ${pillar.description || "Sesuai brand"}
 Tipe Konten: ${content.contentType?.toUpperCase() || "Not specified"}
 Platform: ${content.platforms?.join(", ") || "Not specified"}
 Topic/Judul: ${content.title || "(belum ada judul)"}
+${content.referenceLinks ? `Link Referensi: ${content.referenceLinks}` : ""}
 ${highlightProduct}
 
 ${contentTypeGuide[content.contentType as string] || ""}
