@@ -36,6 +36,8 @@ const DB = {
   targetAudience: getDbId(process.env.NOTION_TARGET_AUDIENCE_DB_ID),
   // Content Chat History
   contentChatHistory: getDbId(process.env.NOTION_CONTENT_CHAT_HISTORY_DB_ID),
+  // Notifications
+  notifications: getDbId(process.env.NOTION_NOTIFICATIONS_DB_ID),
 };
 
 // Helper to extract text from Notion property
@@ -2101,6 +2103,167 @@ export async function clearContentChatHistory(contentId: string): Promise<void> 
     }
   } catch (error) {
     console.error("Error clearing chat history:", error);
+  }
+}
+
+// ========= NOTIFICATIONS =========
+
+export interface Notification {
+  id: string;
+  title: string;
+  type: "comment" | "reply" | "revision" | "approval" | "mention";
+  message: string;
+  recipientId: string;
+  recipientType: "admin" | "client";
+  senderName: string;
+  senderType: "admin" | "client";
+  contentId: string;
+  contentTitle: string;
+  clientId: string;
+  isRead: boolean;
+  linkUrl: string;
+  createdAt: string;
+}
+
+export async function getNotifications(
+  recipientId: string,
+  recipientType: "admin" | "client",
+  options?: { unreadOnly?: boolean; limit?: number }
+): Promise<Notification[]> {
+  if (!DB.notifications) return [];
+
+  try {
+    const filterConditions: any[] = [
+      { property: "Recipient Type", select: { equals: recipientType } },
+    ];
+
+    // For admin, get all notifications. For client, filter by recipientId
+    if (recipientType === "client") {
+      filterConditions.push({ property: "Recipient ID", rich_text: { equals: recipientId } });
+    }
+
+    if (options?.unreadOnly) {
+      filterConditions.push({ property: "Is Read", checkbox: { equals: false } });
+    }
+
+    const res = await notion.databases.query({
+      database_id: DB.notifications,
+      filter: { and: filterConditions },
+      sorts: [{ timestamp: "created_time", direction: "descending" }],
+      page_size: options?.limit || 50,
+    });
+
+    return res.results.map((page: any) => ({
+      id: page.id,
+      title: getText(page.properties["Title"]),
+      type: getText(page.properties["Type"]) as Notification["type"],
+      message: getText(page.properties["Message"]),
+      recipientId: getText(page.properties["Recipient ID"]),
+      recipientType: getText(page.properties["Recipient Type"]) as "admin" | "client",
+      senderName: getText(page.properties["Sender Name"]),
+      senderType: getText(page.properties["Sender Type"]) as "admin" | "client",
+      contentId: getText(page.properties["Content ID"]),
+      contentTitle: getText(page.properties["Content Title"]),
+      clientId: getText(page.properties["Client ID"]),
+      isRead: page.properties["Is Read"]?.checkbox ?? false,
+      linkUrl: page.properties["Link URL"]?.url || "",
+      createdAt: page.created_time,
+    }));
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    return [];
+  }
+}
+
+export async function createNotification(data: {
+  title: string;
+  type: Notification["type"];
+  message: string;
+  recipientId: string;
+  recipientType: "admin" | "client";
+  senderName: string;
+  senderType: "admin" | "client";
+  contentId: string;
+  contentTitle: string;
+  clientId: string;
+  linkUrl: string;
+}): Promise<string | null> {
+  if (!DB.notifications) return null;
+
+  try {
+    const page = await notion.pages.create({
+      parent: { database_id: DB.notifications },
+      properties: {
+        Title: { title: [{ text: { content: data.title } }] },
+        Type: { select: { name: data.type } },
+        Message: { rich_text: [{ text: { content: data.message.slice(0, 2000) } }] },
+        "Recipient ID": { rich_text: [{ text: { content: data.recipientId } }] },
+        "Recipient Type": { select: { name: data.recipientType } },
+        "Sender Name": { rich_text: [{ text: { content: data.senderName } }] },
+        "Sender Type": { select: { name: data.senderType } },
+        "Content ID": { rich_text: [{ text: { content: data.contentId } }] },
+        "Content Title": { rich_text: [{ text: { content: data.contentTitle.slice(0, 200) } }] },
+        "Client ID": { rich_text: [{ text: { content: data.clientId } }] },
+        "Is Read": { checkbox: false },
+        "Link URL": { url: data.linkUrl || null },
+      },
+    });
+    return page.id;
+  } catch (error) {
+    console.error("Error creating notification:", error);
+    return null;
+  }
+}
+
+export async function markNotificationAsRead(notificationId: string): Promise<void> {
+  if (!DB.notifications) return;
+
+  try {
+    await notion.pages.update({
+      page_id: notificationId,
+      properties: {
+        "Is Read": { checkbox: true },
+      },
+    });
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+  }
+}
+
+export async function markAllNotificationsAsRead(
+  recipientId: string,
+  recipientType: "admin" | "client"
+): Promise<void> {
+  if (!DB.notifications) return;
+
+  try {
+    const unreadNotifications = await getNotifications(recipientId, recipientType, { unreadOnly: true });
+
+    await Promise.all(
+      unreadNotifications.map((notif) =>
+        notion.pages.update({
+          page_id: notif.id,
+          properties: { "Is Read": { checkbox: true } },
+        })
+      )
+    );
+  } catch (error) {
+    console.error("Error marking all notifications as read:", error);
+  }
+}
+
+export async function getUnreadNotificationCount(
+  recipientId: string,
+  recipientType: "admin" | "client"
+): Promise<number> {
+  if (!DB.notifications) return 0;
+
+  try {
+    const notifications = await getNotifications(recipientId, recipientType, { unreadOnly: true });
+    return notifications.length;
+  } catch (error) {
+    console.error("Error getting unread notification count:", error);
+    return 0;
   }
 }
 

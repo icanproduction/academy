@@ -23,6 +23,7 @@ import {
   X,
   TrendingUp,
 } from "lucide-react";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 const CLIENT_NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -45,6 +46,7 @@ interface Session {
   email: string;
   role: string;
   name: string;
+  clientId?: string;
 }
 
 interface SidebarProps {
@@ -159,6 +161,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* User Section */}
         <div className="p-3 border-t border-slate-200/60">
+          {/* Notification Bell */}
+          {session && (
+            <div className="mb-2 px-3 hidden lg:block">
+              <NotificationBell
+                recipientId={session.clientId || ""}
+                recipientType={session.role === "admin" ? "admin" : "client"}
+              />
+            </div>
+          )}
           <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100/50">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-md">
               {initials}
@@ -183,20 +194,38 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
 // Mobile Header with hamburger menu
 export function MobileHeader({ onMenuClick }: { onMenuClick: () => void }) {
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("ican_session");
+    if (stored) {
+      setSession(JSON.parse(stored));
+    }
+  }, []);
+
   return (
-    <header className="fixed top-0 left-0 right-0 h-14 bg-white/80 backdrop-blur-lg border-b border-slate-200/60 flex items-center px-4 z-30 lg:hidden">
-      <button
-        onClick={onMenuClick}
-        className="p-2 -ml-2 rounded-lg text-slate-600 hover:bg-slate-100"
-      >
-        <Menu className="w-6 h-6" />
-      </button>
-      <div className="flex items-center gap-2 ml-3">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">
-          <span className="text-white font-bold text-sm">i</span>
+    <header className="fixed top-0 left-0 right-0 h-14 bg-white/80 backdrop-blur-lg border-b border-slate-200/60 flex items-center justify-between px-4 z-30 lg:hidden">
+      <div className="flex items-center">
+        <button
+          onClick={onMenuClick}
+          className="p-2 -ml-2 rounded-lg text-slate-600 hover:bg-slate-100"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+        <div className="flex items-center gap-2 ml-3">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">
+            <span className="text-white font-bold text-sm">i</span>
+          </div>
+          <span className="font-bold text-slate-800">iCAN</span>
         </div>
-        <span className="font-bold text-slate-800">iCAN</span>
       </div>
+      {/* Notification Bell for Mobile */}
+      {session && (
+        <NotificationBell
+          recipientId={session.clientId || ""}
+          recipientType={session.role === "admin" ? "admin" : "client"}
+        />
+      )}
     </header>
   );
 }
