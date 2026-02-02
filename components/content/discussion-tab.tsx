@@ -10,7 +10,11 @@ import {
   AlertCircle,
   Loader2,
   User,
+  Film,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
+import { GoogleDriveEmbed, isGoogleDriveUrl } from "./google-drive-embed";
 
 interface Discussion {
   id: string;
@@ -30,9 +34,10 @@ interface RevisionPoint {
 interface DiscussionTabProps {
   contentId: string;
   revisionFeedback?: string | null;
+  outputUrl?: string;
 }
 
-export function DiscussionTab({ contentId, revisionFeedback }: DiscussionTabProps) {
+export function DiscussionTab({ contentId, revisionFeedback, outputUrl }: DiscussionTabProps) {
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [revisionPoints, setRevisionPoints] = useState<RevisionPoint[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -41,6 +46,10 @@ export function DiscussionTab({ contentId, revisionFeedback }: DiscussionTabProp
   const [sending, setSending] = useState(false);
   const [userName, setUserName] = useState("You");
   const [userClientId, setUserClientId] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(true);
+
+  // Check if outputUrl is a Google Drive URL
+  const hasGoogleDriveOutput = isGoogleDriveUrl(outputUrl || "");
 
   // Get user info from session
   useEffect(() => {
@@ -176,6 +185,31 @@ export function DiscussionTab({ contentId, revisionFeedback }: DiscussionTabProp
 
   return (
     <div className="p-4 md:p-6">
+      {/* Output Preview Section - Collapsible */}
+      {hasGoogleDriveOutput && outputUrl && (
+        <div className="max-w-6xl mx-auto mb-6">
+          <button
+            onClick={() => setShowPreview(!showPreview)}
+            className="flex items-center gap-2 w-full p-3 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors mb-2"
+          >
+            <Film className="w-5 h-5 text-blue-600" />
+            <span className="font-medium text-slate-700 flex-1 text-left">
+              Preview Output
+            </span>
+            {showPreview ? (
+              <ChevronUp className="w-5 h-5 text-slate-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-slate-500" />
+            )}
+          </button>
+          {showPreview && (
+            <div className="animate-fade-in">
+              <GoogleDriveEmbed url={outputUrl} />
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 max-w-6xl mx-auto">
         {/* Discussion Thread - 2/3 width */}
         <div className="lg:col-span-2 space-y-4">

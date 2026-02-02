@@ -45,3 +45,4 @@ scripts/trending/setup_complete.py
 scripts/trending/setup_database.py
 __pycache__/
 *.pyc
+scripts/create_notifications_db.py

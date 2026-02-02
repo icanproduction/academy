@@ -526,6 +526,7 @@ export default function AdminContentDetailPage() {
             <DiscussionTab
               contentId={contentId}
               revisionFeedback={revisionFeedback}
+              outputUrl={content?.outputUrl}
             />
           </div>
         )}

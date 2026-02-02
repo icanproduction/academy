@@ -357,23 +357,30 @@ export function ContentDetailTab({ content, isEditable, onUpdate }: ContentDetai
         </div>
       </div>
 
-      {/* Save Button */}
-      {isEditable && (
-        <div className="flex justify-end pt-4 border-t border-slate-100">
-          <button
-            onClick={() => onUpdate(localContent)}
-            disabled={saving}
-            className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            Simpan Perubahan
-          </button>
-        </div>
-      )}
+      {/* Save Button - Always show for any user */}
+      <div className="flex justify-end pt-4 border-t border-slate-100">
+        <button
+          onClick={async () => {
+            setSaving(true);
+            try {
+              await onUpdate(localContent);
+            } catch (error) {
+              console.error("Error saving:", error);
+            } finally {
+              setSaving(false);
+            }
+          }}
+          disabled={saving}
+          className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+        >
+          {saving ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          Simpan Perubahan
+        </button>
+      </div>
     </div>
   );
 }
