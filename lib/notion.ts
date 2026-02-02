@@ -1341,7 +1341,7 @@ export async function getClientAssets(clientId: string, filters?: { assetType?: 
       clientId: (getText(page.properties["Client"]) as any)?.[0] || "",
       assetName: getText(page.properties["Asset Name"]),
       assetType: getText(page.properties["Type"]) as ClientAsset["assetType"],
-      url: getText(page.properties["URL"]),
+      url: page.properties["URL"]?.url || "",
       description: getText(page.properties["Description"]),
       isActive: page.properties["Is Active"]?.checkbox ?? true,
     }));

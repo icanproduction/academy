@@ -26,10 +26,10 @@ interface Asset {
 }
 
 const ASSET_TYPES = [
-  { value: "Template", label: "Template", icon: Palette },
-  { value: "Design", label: "Design", icon: FileImage },
-  { value: "Video", label: "Video", icon: Video },
-  { value: "Link", label: "Link", icon: Link2 },
+  { value: "Canva Template", label: "Canva Template", icon: Palette },
+  { value: "Font", label: "Font", icon: FileImage },
+  { value: "Logo", label: "Logo", icon: FileImage },
+  { value: "Guidelines", label: "Guidelines", icon: Link2 },
   { value: "Other", label: "Lainnya", icon: MoreHorizontal },
 ];
 
@@ -44,7 +44,7 @@ export default function AssetsPage() {
   // Form states
   const [newAsset, setNewAsset] = useState({
     assetName: "",
-    assetType: "Template",
+    assetType: "Canva Template",
     url: "",
     description: "",
   });
@@ -104,7 +104,7 @@ export default function AssetsPage() {
       const data = await res.json();
       if (data.success) {
         setShowAddModal(false);
-        setNewAsset({ assetName: "", assetType: "Template", url: "", description: "" });
+        setNewAsset({ assetName: "", assetType: "Canva Template", url: "", description: "" });
         fetchAssets();
       } else {
         alert("Gagal menambahkan asset: " + data.error);
@@ -141,10 +141,10 @@ export default function AssetsPage() {
 
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      Template: "from-purple-500 to-violet-600",
-      Design: "from-pink-500 to-rose-600",
-      Video: "from-red-500 to-orange-600",
-      Link: "from-blue-500 to-cyan-600",
+      "Canva Template": "from-purple-500 to-violet-600",
+      Font: "from-pink-500 to-rose-600",
+      Logo: "from-blue-500 to-cyan-600",
+      Guidelines: "from-green-500 to-emerald-600",
       Other: "from-slate-500 to-gray-600",
     };
     return colors[type] || colors.Other;
